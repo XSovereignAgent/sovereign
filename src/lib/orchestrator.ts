@@ -602,6 +602,15 @@ async function executeExternalTask(
         });
         
         if (secRes.success && secRes.data?.data) {
+          // Inject token info into security data for UI display
+          if (secRes.data.data) {
+            const tokenInfo = Array.isArray(secRes.data.data) ? secRes.data.data[0] : secRes.data.data;
+            if (tokenInfo) {
+              tokenInfo.tokenAddress = token.address;
+              tokenInfo.tokenName = token.name;
+            }
+          }
+
           onMessage(
             msg("data-card", "security", {
               agentName: selected.name,

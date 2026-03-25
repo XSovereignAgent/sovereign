@@ -137,9 +137,9 @@ function PortfolioCard({ data }: { data: any }) {
 
 function SecurityCard({ result }: { result: any }) {
   // Real OKX security payload: data is an array of token objects
-  const tokenData = result?.[0] || {};
+  const tokenData = result?.[0] || result || {};
   const isSafe = tokenData.isRiskToken === false;
-  const address = tokenData.tokenAddress || "Unknown";
+  const address = tokenData.tokenAddress || tokenData.address || "Sovereign Protected";
 
   return (
     <div
