@@ -44,5 +44,6 @@ export interface ParsedIntent {
 }
 export interface ContractStats {
   address: string;
-  totalHires: number;
+  totalHires: string;
+  agentsMinted: string;
 }
