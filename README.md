@@ -72,5 +72,6 @@ Type these commands into the terminal:
 
 ---
 
-Built with ❤️ for the **OKX X Layer Hackathon**. 
+Built  for the **OKX XLayer Hackathon**. 
+
 Sovereignty is yours.
