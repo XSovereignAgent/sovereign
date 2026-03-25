@@ -6,7 +6,6 @@
 
 import { AgentTask } from "@/types";
 import { parseCommand } from "./commandParser";
-import { planTasks } from "./taskPlanner";
 import { getAgentsByRole, useAgent } from "./agentXClient";
 import {
   fetchPortfolio,
@@ -137,20 +136,40 @@ export async function orchestrate(
     return;
   }
 
-  // Step 1: Parse
+  // Step 1: Parse with LLM brain (Groq / Llama 3.3 70B) — fallback to rule-based
   onMessage(msg("system", "Analyzing your request..."));
   await delay(400);
 
-  const parsed = parseCommand(command);
-  onMessage(
-    msg("system", `Detected intents: **${parsed.intents.join("**, **")}**`)
-  );
-  await delay(300);
+  let planned: AgentTask[] = [];
 
-  // Step 2: Plan
+  // Try LLM first
+  let llmResult = null;
+  try {
+    const { parsCommandWithLLM } = await import("./llm");
+    llmResult = await parsCommandWithLLM(command, !!walletAddress);
+  } catch {
+    // Groq unavailable — fall through to rule-based
+  }
+
+  if (llmResult && llmResult.tasks.length > 0) {
+    // LLM succeeded — show its reasoning
+    onMessage(msg("system", `🧠 **AI Reasoning:** ${llmResult.reasoning}`));
+    await delay(300);
+    onMessage(msg("system", `Detected intents: **${llmResult.intents.join("**, **")}**`));
+    await delay(300);
+    planned = llmResult.tasks;
+  } else {
+    // Fallback to rule-based parser
+    const parsed = parseCommand(command);
+    onMessage(msg("system", `Detected intents: **${parsed.intents.join("**, **")}**`));
+    await delay(300);
+    const { planTasks } = await import("./taskPlanner");
+    planned = planTasks(parsed.tasks);
+  }
+
+  // Step 2: Show the plan
   onMessage(msg("system", "Building execution plan..."));
-  await delay(500);
-  const planned = planTasks(parsed.tasks);
+  await delay(400);
 
   const planSteps = planned
     .map(
