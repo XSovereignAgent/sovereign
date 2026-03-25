@@ -31,15 +31,12 @@ Format:
   ]
 }
 
-Rules:
-- source is "internal" for fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent
-- source is "external" for analyze_security, execute_trade (these use on-chain agents from the market)
-- agentName should be creative and professional
-- Keep tasks in logical order (fetch before analyze, analyze before execute)
-- If the user wants to "buy safe tokens", include fetch_trends → analyze_security → execute_trade
-- If the user asks for portfolio, include fetch_portfolio
-- If the user mentions security or "is X safe", include analyze_security
-- Only include relevant tasks, don't add unnecessary ones`;
+CRITICAL RULES:
+1. If the user wants to "analyze holdings" but has NO wallet connected (see Context), DO NOT plan analyze_security or fetch_portfolio. Instead, return NO tasks and explain why in reasoning.
+2. If the user wants to "trade/buy" but has NO wallet connected, EXCLUDE execute_trade. You can still plan fetch_trends + analyze_security to show them what look good!
+3. source is "internal" for fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent
+4. source is "external" for analyze_security, execute_trade (these use on-chain agents from market)
+5. Keep tasks in logical order (fetch before analyze, analyze before execute)`;
 
 export async function POST(req: NextRequest) {
   try {
