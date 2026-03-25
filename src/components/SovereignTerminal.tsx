@@ -7,6 +7,7 @@ import { orchestrate } from "@/lib/orchestrator";
 import { TrendingToken, PortfolioAsset, SecurityResult, SwapResult } from "@/lib/mockOkx";
 import { useWallet } from "@/lib/walletContext";
 import { saveSession, loadLastSession, getMemorySummary, clearMemory } from "@/lib/memory";
+import { ContractStats } from "@/types";
 
 // ============================================
 // LOGO COMPONENT

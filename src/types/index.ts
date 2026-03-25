@@ -42,3 +42,7 @@ export interface ParsedIntent {
   intents: string[];
   tasks: AgentTask[];
 }
+export interface ContractStats {
+  address: string;
+  totalHires: number;
+}
