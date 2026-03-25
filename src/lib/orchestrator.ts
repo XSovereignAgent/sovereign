@@ -73,16 +73,21 @@ interface SignalToken {
 }
 
 function transformSignalData(signals: SignalToken[]) {
-  return signals.slice(0, 6).map((s) => ({
-    symbol: s.token.symbol,
-    name: s.token.name,
-    price: `$${parseFloat(s.price).toFixed(6)}`,
-    change24h: `${s.triggerWalletCount} wallets`,
-    volume: `$${parseFloat(s.amountUsd).toFixed(0)}`,
-    marketCap: `$${(parseFloat(s.token.marketCapUsd) / 1e6).toFixed(2)}M`,
-    walletType: s.walletType === "1" ? "Smart Money" : s.walletType === "2" ? "KOL" : "Whale",
-    soldRatio: s.soldRatioPercent,
-  }));
+  return signals.slice(0, 6).map((s) => {
+    const price = parseFloat(s.price);
+    const amt = parseFloat(s.amountUsd);
+    return {
+      symbol: s.token.symbol,
+      name: s.token.name,
+      tokenContractAddress: s.token.tokenAddress,
+      price: price > 0 ? `$${price.toFixed(6)}` : "N/A",
+      change24h: `${s.triggerWalletCount} wallets`,
+      volume: amt > 0 ? `$${amt.toFixed(0)}` : "N/A",
+      marketCap: `$${(parseFloat(s.token.marketCapUsd) / 1e6).toFixed(2)}M`,
+      walletType: s.walletType === "1" ? "Smart Money" : s.walletType === "2" ? "KOL" : "Whale",
+      soldRatio: s.soldRatioPercent,
+    };
+  });
 }
 
 export async function orchestrate(
@@ -256,11 +261,13 @@ async function executeInternalTask(
           
           // Populate pipeline context with discovered token addresses
           if (ctx && transformed.length > 0) {
-            ctx.trendingTokens = transformed.map((t: any) => ({
-              address: t.tokenContractAddress || t.address || "",
-              name: t.tokenName || t.name || "Unknown",
-              symbol: t.tokenSymbol || t.symbol || "???",
-            })).filter((t: any) => t.address);
+            ctx.trendingTokens = transformed
+              .map((t: any) => ({
+                address: t.tokenContractAddress || "",
+                name: t.name || "Unknown",
+                symbol: t.symbol || "???",
+              }))
+              .filter((t: any) => t.address && t.address.length > 10);
           }
           
           onMessage(
@@ -301,6 +308,14 @@ async function executeInternalTask(
     }
 
     case "execute_trade": {
+      // Wallet guard — don't proceed if no wallet connected
+      if (!walletAddress) {
+        onMessage(msg("error", "🔌 **No wallet connected.** Please click **Connect Wallet** in the top-right corner first, then try again. Your wallet is needed to sign the transaction.", {
+          agentName: task.agentName,
+          agentRole: "Execution",
+        }));
+        return;
+      }
       onMessage(
         msg("agent-activity", "Preparing swap quote...", {
           agentName: task.agentName,
@@ -609,6 +624,14 @@ async function executeExternalTask(
       onMessage(msg("error", `${selected.name} could not fetch signals. API unavailable.`));
     }
   } else if (task.type === "execute_trade") {
+    // Wallet guard — don't attempt trade without wallet
+    if (!walletAddress) {
+      onMessage(msg("error", "🔌 **No wallet connected.** Please click **Connect Wallet** in the top-right corner first, then try again.", {
+        agentName: selected.name,
+        agentRole: role,
+      }));
+      return;
+    }
     // External execution agent fetches real swap quote
     try {
       // Use the first safe token from the pipeline context if available, otherwise swap for USDC
