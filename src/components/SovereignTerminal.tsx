@@ -673,11 +673,16 @@ export default function SovereignTerminal() {
               className="flex flex-col items-center justify-center h-full text-center"
             >
               <SovereignLogo className="w-24 h-24 mb-6" />
-              <h2 className="text-2xl font-black text-white tracking-widest mb-1">
-                SOVEREIGN
-              </h2>
-              <div className="text-xs text-emerald-400 font-bold tracking-[0.3em] uppercase mb-8">
-                Agent Terminal
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-2xl font-black text-white tracking-widest">
+                  SOVEREIGN
+                </h2>
+                <div className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                  v1.2-MEGA-SMART
+                </div>
+              </div>
+              <div className="text-xs text-emerald-400/60 font-bold tracking-[0.3em] uppercase mb-8">
+                Agent Terminal · ALPHA
               </div>
               <p className="text-gray-400 max-w-sm mb-10 text-sm leading-relaxed">
                 Your AI trading crew is ready.
