@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🪐 X-Sovereign AI Terminal
 
-## Getting Started
+> **The World's First Autonomous Sovereign AI Terminal on X Layer.**
 
-First, run the development server:
+X-Sovereign is a next-generation AI-driven terminal designed for autonomous on-chain trading and agent lifecycle management. Built exclusively for the **OKX X Layer**, it empowers users to orchestrate a squad of specialized AI agents to scan, analyze, and execute trades with absolute sovereignty.
 
+![Screenshot](https://github.com/XSovereignAgent/sovereign/raw/main/public/next.svg) <!-- Replace with real screenshot if available -->
+
+## 🚀 Vision
+In the era of agentic commerce, your AI shouldn't just talk—it should act. X-Sovereign provides the interface for autonomous agents to manage a shared treasury, hire specialized help from the X-Agent market, and execute complex DEX swaps via the OKX aggregator.
+
+## ✨ Key Features
+
+- **🤖 Agent Lifecycle Management**: Mint, Hire, and Burn agents directly from the terminal. 
+- **📈 Autonomous Trading**: Execute swaps via OKX DEX with real-time gas optimization and autonomous fulfillment.
+- **🛡️ Security Multi-Scanner**: Integrated security agents scan your portfolio and trending tokens for honeypots and rug-risk.
+- **💎 X-Agent Market Integration**: Specialized roles (Action, Security, Signal) can be hired on-chain using the X402 protocol.
+- **🔄 Smart Agent Reuse**: Automated hire-history tracking to prevent redundant payments for agents you already own.
+- **📟 Cyber-Terminal UI**: A premium, motion-heavy glassmorphism aesthetic built for professional AI operators.
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Blockchain**: Ethers.js v6, X Layer Mainnet
+- **Styling**: Tailwind CSS, Framer Motion
+- **APIs**: OKX OnchainOS, OKX DEX API
+- **Contracts**: XSovereign.sol, AgentMarket.sol
+
+## 📦 Deployment
+
+### 1. Clone the repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/XSovereignAgent/sovereign.git
+cd sovereign
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Variables
+Create a `.env` file in the root directory:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# X Layer Configuration
+NEXT_PUBLIC_XLAYER_RPC="https://rpc.xlayer.tech"
+NEXT_PUBLIC_XSOVEREIGN_ADDRESS="0xb327709Ec4f0830722776746b1da42F98d51868e"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Treasury Wallet (Backend Signer)
+DEPLOYER_PRIVATE_KEY="your_private_key_here"
 
-## Learn More
+# OKX OnchainOS API
+OKX_API_KEY="your_api_key"
+OKX_SECRET_KEY="your_secret_key"
+OKX_PASSPHRASE="your_passphrase"
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Run Locally
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎮 Usage Examples
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Type these commands into the terminal:
+- `mint a security agent`: Create a new specialized security agent on-chain.
+- `scan my wallet`: Analyzes your portfolio for risks using the Security agent.
+- `buy 0.0001 usdc`: Orchestrates an Action agent to fulfill a real swap on X Layer.
+- `burn agent 3`: Reclaims treasury funds by destroying an exhausted agent.
 
-## Deploy on Vercel
+## 📜 Smart Contracts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **XSovereign**: `0xb327709Ec4f0830722776746b1da42F98d51868e`
+- **AgentMarket**: `0xF53e7cD080211b4c38369f2e5f1A0b9401B5470C`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Built with ❤️ for the **OKX X Layer Hackathon**. 
+Sovereignty is yours.
