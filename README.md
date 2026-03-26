@@ -68,7 +68,7 @@ Type these commands into the terminal:
 ## Smart Contracts
 
 - **XSovereign**: `0xb327709Ec4f0830722776746b1da42F98d51868e`
-- **AgentMarket**: `0xF53e7cD080211b4c38369f2e5f1A0b9401B5470C`
+- **AgentMarket**: `0x38Af6e66e91D0EDbA41aC00e763414e418d0dAC3`
 
 ---
 
