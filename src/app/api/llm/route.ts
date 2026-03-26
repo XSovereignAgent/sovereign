@@ -10,38 +10,42 @@ You should enclose your thoughts and internal monologue inside <think> </think> 
 
 Your job is to analyze user commands and determine what tasks the agent should execute.
 
-Available tasks:
+Available task types:
 - fetch_trends: Fetch real-time trending tokens and smart money signals from OKX
 - analyze_security: Check if tokens are safe (honeypot detection, risk analysis)
 - execute_trade: Execute a token swap/buy on X Layer via OKX DEX
 - fetch_portfolio: Fetch the user's current wallet holdings
 - rebalance: Analyze and suggest portfolio rebalancing
-- mint_agent: Hire a new AI agent from the on-chain Agent Market
+- mint_agent: Hire/create a NEW AI agent on-chain. You MUST include data.role with one of: "Security", "Action", "Signal", "Portfolio", "Rebalancer"
 - burn_agent: Retire/burn an existing agent to reclaim funds
+- list_agents: List all agents in the on-chain Agent Market (use when user says "show my agents", "search agents", "list agents", "what agents do I have")
 
-You MUST respond with valid JSON only, no markdown, no explanation outside JSON.
+You MUST respond with valid JSON only (after any <think> block), no markdown.
 Format:
 {
   "intents": ["short label for each intent detected"],
   "reasoning": "1-2 sentence explanation of what you understood and why you picked these tasks",
   "tasks": [
     {
-      "type": "fetch_trends",
-      "label": "Fetch trending tokens via OKX Signal",
+      "type": "mint_agent",
+      "label": "Create a new Action agent on-chain",
       "source": "internal",
-      "agentName": "TrendAnalyzer"
+      "agentName": "AgentSpawner",
+      "data": { "role": "Action" }
     }
   ]
 }
 
 CRITICAL RULES:
-1. If the user wants to "analyze holdings" but has NO wallet connected (see Context), DO NOT plan analyze_security or fetch_portfolio. Instead return NO tasks.
-2. If the user wants to "trade/buy" but has NO wallet connected, EXCLUDE execute_trade. You can still plan fetch_trends + analyze_security.
-3. NEVER plan analyze_security ALONE without fetch_trends or fetch_portfolio before it. Security scans REQUIRE tokens to analyze.
-4. If the user says "burn agent" or "retire agent", ONLY plan burn_agent. Do NOT also plan fetch_portfolio.
-5. source is "internal" for fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent
-6. source is "external" for analyze_security, execute_trade (these use on-chain agents from market)
-7. Keep tasks in logical order (fetch before analyze, analyze before execute)`;
+1. If the user wants to "analyze holdings" but has NO wallet connected, return NO tasks.
+2. If the user wants to "trade/buy" but has NO wallet connected, EXCLUDE execute_trade.
+3. NEVER plan analyze_security ALONE without fetch_trends or fetch_portfolio before it.
+4. If the user says "burn agent" or "retire agent", ONLY plan burn_agent.
+5. For mint_agent: ALWAYS include data.role matching the user's request ("Action" for trading, "Security" for scanning, "Signal" for trends). Default to "Security" only if unspecified.
+6. For list_agents: use this when the user asks to see, search, or list their agents.
+7. source is "internal" for: fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent, list_agents
+8. source is "external" for: analyze_security, execute_trade
+9. Keep tasks in logical order (fetch before analyze, analyze before execute)`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,18 +76,21 @@ export async function POST(req: NextRequest) {
           },
         ],
         temperature: 0.3,
-        max_tokens: 800,
+        max_tokens: 1200,
       }),
     });
 
     if (!res.ok) {
       const errorData = await res.json();
-      return NextResponse.json({ success: false, error: errorData.error?.message || "Groq API error" }, { status: res.status });
+      return NextResponse.json({ success: false, error: errorData.error?.message || "LLM API error" }, { status: res.status });
     }
 
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("Empty response from Groq");
+    let content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) throw new Error("Empty response from LLM");
+
+    // Strip <think>...</think> blocks (Hermes-4 deep reasoning output)
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found in response");

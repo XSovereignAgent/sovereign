@@ -442,11 +442,12 @@ async function executeInternalTask(
       }
 
       onMessage(msg("agent-activity", `Mint confirmation received. Broadcasting transaction...`, { agentName: task.agentName, agentRole: "Admin" }));
+      const mintRole = task.data?.role || "Security";
       try {
         const res = await fetch("/api/agent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "mint_agent", params: { role: "Security", metadataURI: "ipfs://QmAutonomousSovereignX" } }),
+          body: JSON.stringify({ action: "mint_agent", params: { role: mintRole, metadataURI: "ipfs://QmAutonomousSovereignX" } }),
         });
         const data = await res.json();
         if (data.success && data.data?.status === "success" && data.data?.agentId) {
@@ -495,6 +496,28 @@ async function executeInternalTask(
         }
       } catch (e) {
         onMessage(msg("error", "Failed to connect to Agent Market."));
+      }
+      break;
+    }
+
+    case "list_agents": {
+      onMessage(msg("agent-activity", "Scanning the on-chain Agent Market for all active agents...", { agentName: task.agentName || "MarketScanner", agentRole: "Admin" }));
+      try {
+        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer"];
+        let allAgents: any[] = [];
+        for (const role of roles) {
+          const agents = await getAgentsByRole(role);
+          allAgents = allAgents.concat(agents.map((a: any) => ({ ...a, queriedRole: role })));
+        }
+
+        if (allAgents.length === 0) {
+          onMessage(msg("system", "No agents found on the X-Agent Market. You can create one with **\"create a new security agent\"**.")); 
+        } else {
+          const agentList = allAgents.map((a: any) => `• **${a.queriedRole} Agent #${a.id}** — Owner: ${String(a.owner || '').slice(0,6)}...${String(a.owner || '').slice(-4)} | Uses: ${a.usageCount || 0}`).join("\n");
+          onMessage(msg("system", `Found **${allAgents.length}** agents on X-Agent Market:\n\n${agentList}`));
+        }
+      } catch (e) {
+        onMessage(msg("error", "Failed to query Agent Market. The contract may be temporarily unavailable."));
       }
       break;
     }

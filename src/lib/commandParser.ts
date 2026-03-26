@@ -57,7 +57,7 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     },
   },
   {
-    pattern: /\b(mint|create|spawn|generate)\b/i,
+    pattern: /\b(mint|create|spawn|generate|hire)\b/i,
     intent: "mint_agent",
     task: {
       type: "mint_agent",
@@ -67,13 +67,23 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     },
   },
   {
-    pattern: /\b(burn|fire|destroy|delete|remove)\b/i,
+    pattern: /\b(burn|fire|destroy|delete|remove|retire)\b/i,
     intent: "burn_agent",
     task: {
       type: "burn_agent",
       label: "Autonomous Agent Burning",
       source: "internal",
       agentName: "AgentRecycler",
+    },
+  },
+  {
+    pattern: /\b(list\s*agent|show\s*agent|my\s*agent|search\s*agent|all\s*agent)/i,
+    intent: "list_agents",
+    task: {
+      type: "list_agents",
+      label: "List all agents on X-Agent Market",
+      source: "internal",
+      agentName: "MarketScanner",
     },
   },
 ];

@@ -9,7 +9,8 @@ export type TaskType =
   | "fetch_portfolio"
   | "rebalance"
   | "mint_agent"
-  | "burn_agent";
+  | "burn_agent"
+  | "list_agents";
 
 export type AgentSource = "internal" | "external";
 
