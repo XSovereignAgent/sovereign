@@ -151,15 +151,22 @@ export async function orchestrate(
     // Groq unavailable — fall through to rule-based
   }
 
-  if (llmResult && llmResult.tasks.length > 0) {
-    // LLM succeeded — show its reasoning
+  if (llmResult) {
+    // LLM succeeded (even if it chose 0 tasks)
     onMessage(msg("system", `🧠 **AI Reasoning:** ${llmResult.reasoning}`));
     await delay(300);
-    onMessage(msg("system", `Detected intents: **${llmResult.intents.join("**, **")}**`));
-    await delay(300);
-    planned = llmResult.tasks;
+    
+    if (llmResult.tasks.length > 0) {
+      onMessage(msg("system", `Detected intents: **${llmResult.intents.join("**, **")}**`));
+      await delay(300);
+      planned = llmResult.tasks;
+    } else {
+      onMessage(msg("system", "No action required at this time based on the current context. 🪐"));
+      setIsRunning(false);
+      return;
+    }
   } else {
-    // Fallback to rule-based parser
+    // Fallback only if LLM API failed (returned null)
     const parsed = parseCommand(command);
     onMessage(msg("system", `Detected intents: **${parsed.intents.join("**, **")}**`));
     await delay(300);
