@@ -35,11 +35,13 @@ Format:
 }
 
 CRITICAL RULES:
-1. If the user wants to "analyze holdings" but has NO wallet connected (see Context), DO NOT plan analyze_security or fetch_portfolio. Instead, return NO tasks and explain why in reasoning.
-2. If the user wants to "trade/buy" but has NO wallet connected, EXCLUDE execute_trade. You can still plan fetch_trends + analyze_security to show them what look good!
-3. source is "internal" for fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent
-4. source is "external" for analyze_security, execute_trade (these use on-chain agents from market)
-5. Keep tasks in logical order (fetch before analyze, analyze before execute)`;
+1. If the user wants to "analyze holdings" but has NO wallet connected (see Context), DO NOT plan analyze_security or fetch_portfolio. Instead return NO tasks.
+2. If the user wants to "trade/buy" but has NO wallet connected, EXCLUDE execute_trade. You can still plan fetch_trends + analyze_security.
+3. NEVER plan analyze_security ALONE without fetch_trends or fetch_portfolio before it. Security scans REQUIRE tokens to analyze.
+4. If the user says "burn agent" or "retire agent", ONLY plan burn_agent. Do NOT also plan fetch_portfolio.
+5. source is "internal" for fetch_trends, fetch_portfolio, rebalance, mint_agent, burn_agent
+6. source is "external" for analyze_security, execute_trade (these use on-chain agents from market)
+7. Keep tasks in logical order (fetch before analyze, analyze before execute)`;
 
 export async function POST(req: NextRequest) {
   try {

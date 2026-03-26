@@ -162,7 +162,6 @@ export async function orchestrate(
       planned = llmResult.tasks;
     } else {
       onMessage(msg("system", "No action required at this time based on the current context. 🪐"));
-      setIsRunning(false);
       return;
     }
   } else {
@@ -463,19 +462,36 @@ async function executeInternalTask(
     }
 
     case "burn_agent": {
-      onMessage(msg("agent-activity", `Sovereign AI discarding exhausted Agent ID: 3 to reclaim efficiency funds...`, { agentName: task.agentName, agentRole: "Admin" }));
+      // Dynamically find the most recently hired agent
+      let agentIdToBurn: string | null = null;
+      try {
+        const histRes = await callAgentAPI("get_hire_history");
+        if (histRes.success && Array.isArray(histRes.data) && histRes.data.length > 0) {
+          const last = histRes.data[histRes.data.length - 1];
+          agentIdToBurn = String(last.agentId);
+        }
+      } catch (e) {
+        console.warn("Could not fetch hire history for burn");
+      }
+
+      if (!agentIdToBurn) {
+        onMessage(msg("error", "No agents found in your Sovereign registry to retire. First, mint an agent from the Agent Market.", { agentName: task.agentName }));
+        break;
+      }
+
+      onMessage(msg("agent-activity", `Retiring Agent ID: **${agentIdToBurn}** from Sovereign registry to reclaim treasury funds...`, { agentName: task.agentName, agentRole: "Admin" }));
       try {
         const res = await fetch("/api/agent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "burn_agent", params: { agentId: "3" } }),
+          body: JSON.stringify({ action: "burn_agent", params: { agentId: agentIdToBurn } }),
         });
         const data = await res.json();
         if (data.success && data.data?.status === "success") {
-          onMessage(msg("success", `Successfully burned Agent. Sovereign Treasury reclaimed: **${data.data.refundOKB} OKB**.`, { agentName: task.agentName }));
+          onMessage(msg("success", `Successfully retired Agent **#${agentIdToBurn}**. Sovereign Treasury reclaimed: **${data.data.refundOKB} OKB**.`, { agentName: task.agentName }));
           onMessage(msg("system", `View Burn Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${data.data.txHash}`));
         } else {
-          onMessage(msg("error", "Failed to burn Agent. The agent may not exist or the transaction reverted.", { agentName: task.agentName }));
+          onMessage(msg("error", `Failed to retire Agent #${agentIdToBurn}. It may not be owned by the treasury or the transaction reverted.`, { agentName: task.agentName }));
         }
       } catch (e) {
         onMessage(msg("error", "Failed to connect to Agent Market."));
@@ -511,8 +527,17 @@ async function executeExternalTask(
   // Step 1: Fetch agents
   const agents = await getAgentsByRole(role);
   if (agents.length === 0) {
-    onMessage(msg("error", `No agents found for role "${role}" on X-Agent Market.`));
+    onMessage(msg("error", `No agents found for role "${role}" on X-Agent Market. Try **"create a new ${role.toLowerCase()} agent"** first.`));
     return;
+  }
+
+  // Guard: skip security scan if no tokens are in the pipeline
+  if (task.type === "analyze_security" && ctx) {
+    const tokensToScan = [...(ctx.portfolioTokens || []), ...(ctx.trendingTokens || [])];
+    if (tokensToScan.length === 0) {
+      onMessage(msg("system", `⚠️ No tokens available to scan. Fetch trending signals first or deposit tokens into your wallet.`, { agentName: task.agentName }));
+      return;
+    }
   }
 
   // Step 2: Select best agent - Prioritize agents we already hired OR own!
