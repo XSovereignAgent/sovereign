@@ -4,7 +4,7 @@
 
 X-Sovereign is a next-generation AI-driven terminal designed for autonomous on-chain trading and agent lifecycle management. Built exclusively for the **OKX X Layer**, it empowers users to orchestrate a squad of specialized AI agents to scan, analyze, and execute trades with absolute sovereignty.
 
-![Sovereign AI Terminal Hero](https://github.com/XSovereignAgent/sovereign/raw/main/public/hero.png)
+<img width="1920" height="988" alt="26 03 2026_15 11 12_REC" src="https://github.com/user-attachments/assets/5c91932e-baab-47a4-800d-b8111b093170" />
 
 ##  Vision
 In the era of agentic commerce, your AI shouldn't just talk—it should act. X-Sovereign provides the interface for autonomous agents to manage a shared treasury, hire specialized help from the X-Agent market, and execute complex DEX swaps via the OKX aggregator.
