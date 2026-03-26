@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AgentTask, TaskType } from "@/types";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const NOUS_API_URL = process.env.LLM_API_URL || "https://inference-api.nousresearch.com/v1/chat/completions";
+const NOUS_MODEL = process.env.LLM_MODEL || "hermes-3-llama-3.1-405b";
 
 const SYSTEM_PROMPT = `You are the brain of X-Sovereign, an autonomous AI trading terminal running on X Layer blockchain (OKX ecosystem).
 
@@ -41,24 +42,24 @@ CRITICAL RULES:
 export async function POST(req: NextRequest) {
   try {
     const { command, walletConnected } = await req.json();
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = process.env.HERMES_API_KEY || process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ success: false, error: "Missing GROQ_API_KEY" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Missing API Key (HERMES or GROQ)" }, { status: 500 });
     }
 
     const userContext = walletConnected
       ? "The user has a wallet connected."
       : "The user does NOT have a wallet connected. Do NOT include execute_trade tasks.";
 
-    const res = await fetch(GROQ_API_URL, {
+    const res = await fetch(NOUS_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: NOUS_MODEL,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
