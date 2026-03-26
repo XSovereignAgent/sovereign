@@ -19,13 +19,14 @@ export const XSOVEREIGN_ABI = [
 ] as const;
 
 // Partner's AgentMarket.sol — LIVE on X Layer Mainnet
-export const AGENT_MARKET_ADDRESS = "0xF53e7cD080211b4c38369f2e5f1A0b9401B5470C";
+export const AGENT_MARKET_ADDRESS = "0x38Af6e66e91D0EDbA41aC00e763414e418d0dAC3";
 
 export const AGENT_MARKET_ABI = [
   "function getAgentsByRole(string role) view returns (tuple(uint256 id, address creator, address owner, uint256 mintPrice, uint256 usageCount, bool listed, uint256 price, string role, string metadataURI)[])",
   "function useAgent(uint256 agentId) external",
   "function mintAgent(string role, string metadataURI) payable",
   "function burnAgent(uint256 agentId)",
+  "function unlistAgent(uint256 agentId) external",
   "event AgentMinted(uint256 indexed agentId, address indexed creator, string role, uint256 mintPrice)",
   "event AgentBurned(uint256 indexed agentId, address indexed owner, uint256 refundAmount)",
 ] as const;
