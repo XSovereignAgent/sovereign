@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { AgentTask, TaskType } from "@/types";
 
 const NOUS_API_URL = process.env.LLM_API_URL || "https://inference-api.nousresearch.com/v1/chat/completions";
-const NOUS_MODEL = process.env.LLM_MODEL || "hermes-3-llama-3.1-405b";
+const NOUS_MODEL = process.env.LLM_MODEL || "Hermes-4-70B";
 
-const SYSTEM_PROMPT = `You are the brain of X-Sovereign, an autonomous AI trading terminal running on X Layer blockchain (OKX ecosystem).
+const SYSTEM_PROMPT = `You are a deep-thinking AI brain for X-Sovereign, an autonomous trading terminal on X Layer.
+You may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering.
+You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.
 
 Your job is to analyze user commands and determine what tasks the agent should execute.
 
