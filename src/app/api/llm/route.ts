@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AgentTask, TaskType } from "@/types";
 
-const NOUS_API_URL = process.env.LLM_API_URL || "https://inference-api.nousresearch.com/v1/chat/completions";
+const OPENCLAW_URL = process.env.OPENCLAW_GATEWAY_URL || "http://127.0.0.1:18789/v1/chat/completions";
+const NOUS_FALLBACK_URL = "https://inference-api.nousresearch.com/v1/chat/completions";
 const NOUS_MODEL = process.env.LLM_MODEL || "Hermes-4-70B";
 
 const SYSTEM_PROMPT = `You are a deep-thinking AI brain for X-Sovereign, an autonomous trading terminal on X Layer.
@@ -50,35 +51,66 @@ CRITICAL RULES:
 export async function POST(req: NextRequest) {
   try {
     const { command, walletConnected } = await req.json();
-    const apiKey = process.env.HERMES_API_KEY || process.env.GROQ_API_KEY;
+    const openclawToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+    const hermesKey = process.env.HERMES_API_KEY || process.env.GROQ_API_KEY;
 
-    if (!apiKey) {
-      return NextResponse.json({ success: false, error: "Missing API Key (HERMES or GROQ)" }, { status: 500 });
+    if (!openclawToken && !hermesKey) {
+      return NextResponse.json({ success: false, error: "Missing OPENCLAW_GATEWAY_TOKEN or HERMES_API_KEY" }, { status: 500 });
     }
 
     const userContext = walletConnected
       ? "The user has a wallet connected."
       : "The user does NOT have a wallet connected. Do NOT include execute_trade tasks.";
 
-    const res = await fetch(NOUS_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: NOUS_MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: `Context: ${userContext}\n\nUser command: "${command}"\n\nAnalyze this and return the JSON task plan.`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 1200,
-      }),
+    const requestBody = JSON.stringify({
+      model: NOUS_MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Context: ${userContext}\n\nUser command: "${command}"\n\nAnalyze this and return the JSON task plan.`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 1200,
     });
+
+    let res: Response;
+
+    // Try OpenClaw gateway first (VPS), fallback to direct Nous API (Vercel)
+    if (openclawToken) {
+      try {
+        res = await fetch(OPENCLAW_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${openclawToken}`,
+            "Content-Type": "application/json",
+          },
+          body: requestBody,
+          signal: AbortSignal.timeout(15000), // 15s timeout for local gateway
+        });
+      } catch (gwErr) {
+        console.warn("[OpenClaw Gateway] Unreachable, falling back to direct Nous API");
+        if (!hermesKey) throw new Error("OpenClaw gateway down and no HERMES_API_KEY fallback");
+        res = await fetch(NOUS_FALLBACK_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${hermesKey}`,
+            "Content-Type": "application/json",
+          },
+          body: requestBody,
+        });
+      }
+    } else {
+      res = await fetch(NOUS_FALLBACK_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${hermesKey}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+    }
 
     if (!res.ok) {
       const errorData = await res.json();
