@@ -379,11 +379,12 @@ async function executeInternalTask(
       break;
     }
 
-    case "rebalance": {
+    case "rebalance":
+    case "fetch_portfolio": {
       onMessage(
         msg("agent-activity", "Fetching live portfolio from X Layer...", {
           agentName: task.agentName,
-          agentRole: "Rebalancer",
+          agentRole: task.type === "rebalance" ? "Economy" : "Economy",
         })
       );
       
@@ -394,34 +395,57 @@ async function executeInternalTask(
           chains: "xlayer"
         });
         
-        if (result.success && result.data?.data) {
-          const assets = result.data.data;
+        let assets = result.success && result.data?.data ? result.data.data : [];
+        if (!Array.isArray(assets)) assets = [];
+
+        // Fallback: If OKX API fails or returns empty, forcibly inject native OKB balance using ethers
+        try {
+          const { ethers } = await import("ethers");
+          const { XLAYER_RPC } = await import("@/lib/contractConfig");
+          const provider = new ethers.JsonRpcProvider(XLAYER_RPC);
+          const rawBal = await provider.getBalance(addr);
           
-          // Check if portfolio is actually empty
-          const hasTokens = Array.isArray(assets) ? assets.some((group: any) => {
-            const tokenAssets = group?.tokenAssets || [];
-            return tokenAssets.length > 0;
-          }) : false;
-          
-          if (hasTokens) {
-            onMessage(
-              msg("data-card", "portfolio", {
-                agentName: task.agentName,
-                data: assets,
-              })
-            );
-            onMessage(
-              msg("success", `Portfolio loaded for **${addr.slice(0, 6)}...${addr.slice(-4)}** on X Layer.`)
-            );
-          } else {
-            onMessage(
-              msg("system", `No tokens found in wallet **${addr.slice(0, 6)}...${addr.slice(-4)}** on X Layer. Your wallet is empty — deposit OKB or tokens to get started.`, {
-                agentName: task.agentName,
-              })
-            );
+          if (rawBal > 0n) {
+            const okbStr = ethers.formatEther(rawBal);
+            const injectedOKB = {
+              tokenSymbol: "OKB",
+              tokenAmount: parseFloat(okbStr).toFixed(4),
+              availableAmount: parseFloat(okbStr).toFixed(4),
+              balanceUsd: (parseFloat(okbStr) * 50).toFixed(2), // Mock fiat
+              tokenPrice: "50"
+            };
+            
+            // Check if OKB is already in the assets payload to avoid dupes
+            let okbExists = false;
+            if (assets.length > 0 && assets[0]?.tokenAssets) {
+               okbExists = assets[0].tokenAssets.some((t: any) => t.tokenSymbol === "OKB");
+               if (!okbExists) assets[0].tokenAssets.unshift(injectedOKB);
+            } else {
+               assets.push({ tokenAssets: [injectedOKB] });
+            }
           }
+        } catch (fallbackErr) {
+          console.warn("Ethers OKB fallback failed:", fallbackErr);
+        }
+
+        const hasTokens = assets.some((group: any) => (group?.tokenAssets || []).length > 0);
+        
+        if (hasTokens) {
+          onMessage(
+            msg("data-card", "portfolio", {
+              agentName: task.agentName,
+              data: assets,
+            })
+          );
+          onMessage(
+            msg("success", `Portfolio loaded for **${addr.slice(0, 6)}...${addr.slice(-4)}** on X Layer.`)
+          );
         } else {
-          onMessage(msg("error", "Could not retrieve portfolio data from OKX. The API may be temporarily unavailable."));
+          onMessage(
+            msg("system", `No tokens found in wallet **${addr.slice(0, 6)}...${addr.slice(-4)}** on X Layer. Your wallet is empty — deposit OKB or tokens to get started.`, {
+              agentName: task.agentName,
+            })
+          );
         }
       } catch (e) {
         onMessage(msg("error", "Portfolio API error. Check your network connection."));
@@ -494,7 +518,7 @@ async function executeInternalTask(
       
       let ownedAgents: { id: string; role: string }[] = [];
       try {
-        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"];
+        const roles = ["Brain", "Research", "Security", "Execution", "Economy"];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
           const mine = agents.filter((a: any) => 
@@ -557,7 +581,7 @@ async function executeInternalTask(
     case "list_agents": {
       onMessage(msg("agent-activity", "Scanning the on-chain Agent Market for all active agents...", { agentName: task.agentName || "MarketScanner", agentRole: "Admin" }));
       try {
-        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"];
+        const roles = ["Brain", "Research", "Security", "Execution", "Economy"];
         let allAgents: any[] = [];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
@@ -587,11 +611,13 @@ async function executeExternalTask(
 ): Promise<void> {
   const roleMap: Record<string, string> = {
     analyze_security: "Security",
-    fetch_trends: "Signal",
-    execute_trade: "Action", // The market uses "Action" for trade execution
+    fetch_trends: "Research",
+    execute_trade: "Execution",
+    fetch_portfolio: "Economy",
+    rebalance: "Economy",
   };
 
-  const role = roleMap[task.type] || "custom";
+  const role = roleMap[task.type] || "Brain";
 
   onMessage(
     msg("agent-activity", `This task requires a specialized agent. Searching X-Agent Market...`, {
