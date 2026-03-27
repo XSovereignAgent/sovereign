@@ -526,7 +526,7 @@ async function executeInternalTask(
       
       let ownedAgents: { id: string; role: string }[] = [];
       try {
-        const roles = ["Brain", "Research", "Security", "Execution", "Economy"];
+        const roles = ["Brain", "brain", "Research", "research", "Security", "security", "Execution", "execution", "Economy", "economy"];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
           const mine = agents.filter((a: any) => 
@@ -589,7 +589,7 @@ async function executeInternalTask(
     case "list_agents": {
       onMessage(msg("agent-activity", "Scanning the on-chain Agent Market for all active agents...", { agentName: task.agentName || "MarketScanner", agentRole: "Admin" }));
       try {
-        const roles = ["Brain", "Research", "Security", "Execution", "Economy"];
+        const roles = ["Brain", "brain", "Research", "research", "Security", "security", "Execution", "execution", "Economy", "economy"];
         let allAgents: any[] = [];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
@@ -636,7 +636,10 @@ async function executeExternalTask(
   await delay(300);
 
   // Step 1: Fetch agents
-  const agents = await getAgentsByRole(role);
+  let agents = await getAgentsByRole(role);
+  if (agents.length === 0 && role !== role.toLowerCase()) {
+    agents = await getAgentsByRole(role.toLowerCase());
+  }
   if (agents.length === 0) {
     onMessage(msg("error", `No agents found for role "${role}" on the live X-Agent Market contract. You must type **"mint an execution agent"** first!`));
     return;
