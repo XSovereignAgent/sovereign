@@ -905,7 +905,8 @@ async function executeExternalTask(
                 onMessage(msg("error", `Swap failed: ${e.message || "User denied transaction signature"}`, { agentName: selected.name }));
               }
             } else {
-              onMessage(msg("error", "Failed to retrieve swap payload from OKX DEX.", { agentName: selected.name }));
+              const apiError = executeRes.data?.msg || executeRes.data?.description || "No route found or amount too small";
+              onMessage(msg("error", `Failed to retrieve swap payload from OKX DEX: ${apiError}. Try a larger amount or check token liquidity.`, { agentName: selected.name }));
             }
           } else {
             onMessage(msg("system", "Swap execution cancelled by user."));
