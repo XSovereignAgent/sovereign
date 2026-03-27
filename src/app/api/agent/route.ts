@@ -193,48 +193,31 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      case "swap_execute": {
-        const { ethers } = await import("ethers");
-        const { XLAYER_RPC } = await import("@/lib/contractConfig");
-
-        if (!params?.from || !params?.to || !params?.amount) {
-          return NextResponse.json({ error: "Missing swap execute parameters" }, { status: 400 });
+      case "get_swap_data": {
+        if (!params?.from || !params?.to || !params?.amount || !params?.userAddress) {
+          return NextResponse.json({ error: "Missing swap execute parameters (requires userAddress)" }, { status: 400 });
         }
 
-        // 1. Get transaction data from OKX DEX CLI
-        const walletAddress = "0xdC646c197d0202FC2A0326af8ab55066A3549E2E"; // Sovereign Treasury
-        const swapDataRaw: any = await getSwapDataReal(params.from, params.to, params.amount, walletAddress, params?.chain || "xlayer");
+        // 1. Get transaction data from OKX DEX CLI for the CONNECTED user wallet
+        const swapDataRaw: any = await getSwapDataReal(params.from, params.to, params.amount, params.userAddress, params?.chain || "xlayer");
         const txData = Array.isArray(swapDataRaw?.data) ? swapDataRaw.data[0]?.tx : swapDataRaw?.data?.[0]?.tx;
 
         if (!txData || !txData.data) {
           throw new Error("Could not retrieve valid swap transaction data from OKX DEX");
         }
 
-        // 2. Sign and broadcast via Deployer Wallet
-        const provider = new ethers.JsonRpcProvider(XLAYER_RPC);
-        const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY!, provider);
-        
-        // Use estimated gas or formal provider estimate
-        const txRequest = {
-          to: txData.to,
-          data: txData.data,
-          value: txData.value || 0,
-        };
-
-        const gasEstimate = await wallet.estimateGas(txRequest).catch(() => BigInt(250000));
-        
-        const tx = await wallet.sendTransaction({
-          ...txRequest,
-          gasLimit: (gasEstimate * BigInt(110) / BigInt(100)) // +10% buffer
-        });
-
-        const receipt = await tx.wait();
+        // 2. Return the raw payload exactly as the OKX API provides it
+        // The frontend will prompt MetaMask to sign it natively.
         result = {
-          txHash: tx.hash,
-          status: receipt?.status === 1 ? "success" : "failed"
+          tx: {
+            to: txData.to,
+            data: txData.data,
+            value: txData.value || "0"
+          }
         };
         break;
       }
+
 
       case "get_hire_history": {
         const { ethers } = await import("ethers");

@@ -430,6 +430,11 @@ async function executeInternalTask(
     }
 
     case "mint_agent": {
+      if (!walletAddress) {
+        onMessage(msg("error", "🔌 **No wallet connected.** Please connect your wallet to mint an agent."));
+        return;
+      }
+      
       // Require user confirmation before spending OKB
       onMessage(msg("confirmation", `Sovereign AI intends to autonomously hire a new Agent from the market.\n\nFee: 0.001 OKB`, { agentName: task.agentName, data: { action: "mint_agent", fee: "0.001" } }));
       
@@ -441,40 +446,59 @@ async function executeInternalTask(
         }
       }
 
-      onMessage(msg("agent-activity", `Mint confirmation received. Broadcasting transaction...`, { agentName: task.agentName, agentRole: "Admin" }));
+      onMessage(msg("agent-activity", `Mint confirmation received. Please sign the transaction in your wallet...`, { agentName: task.agentName, agentRole: "Admin" }));
       const mintRole = task.data?.role || "Security";
       try {
-        const res = await fetch("/api/agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "mint_agent", params: { role: mintRole, metadataURI: "ipfs://QmAutonomousSovereignX" } }),
-        });
-        const data = await res.json();
-        if (data.success && data.data?.status === "success" && data.data?.agentId) {
-          onMessage(msg("success", `Success! Hired new ${data.data.role} Agent (ID: ${data.data.agentId}).`, { agentName: task.agentName }));
-          onMessage(msg("system", `View Mint Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${data.data.txHash}`));
+        if (typeof window === "undefined" || !(window as any).ethereum) {
+          throw new Error("No Web3 wallet found");
+        }
+        
+        const { ethers } = await import("ethers");
+        const { AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI } = await import("@/lib/contractConfig");
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI, signer);
+        
+        const mintFee = ethers.parseEther("0.001");
+        const tx = await contract.mintAgent(mintRole, "ipfs://QmAutonomousSovereignX", { value: mintFee });
+        
+        onMessage(msg("system", "Transaction submitted. Waiting for confirmation...", { agentName: task.agentName }));
+        const receipt = await tx.wait();
+        
+        if (receipt?.status === 1) {
+          const myAddressTopic = ethers.zeroPadValue(await signer.getAddress(), 32).toLowerCase();
+          const mintLog = receipt?.logs.find((log: any) => 
+            log.topics && log.topics.length >= 3 && log.topics[2].toLowerCase() === myAddressTopic
+          );
+          const parsedAgentId = mintLog ? BigInt(mintLog.topics[1]).toString() : "Unknown";
+          
+          onMessage(msg("success", `Success! Hired new ${mintRole} Agent (ID: ${parsedAgentId}).`, { agentName: task.agentName }));
+          onMessage(msg("system", `View Mint Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${tx.hash}`));
         } else {
           onMessage(msg("error", "Failed to mint Agent. The market may be out of liquid supply or the transaction reverted.", { agentName: task.agentName }));
         }
-      } catch (e) {
-        onMessage(msg("error", "Failed to connect to Agent Market."));
+      } catch (e: any) {
+        console.error(e);
+        onMessage(msg("error", `Failed to complete mint. ${e.message || "User denied transaction signature."}`));
       }
       break;
     }
 
     case "burn_agent": {
+      if (!walletAddress) {
+        onMessage(msg("error", "🔌 **No wallet connected.** Please connect your wallet to retire agents."));
+        return;
+      }
       // Query the actual AgentMarket contract for agents we own
-      onMessage(msg("agent-activity", "Scanning Agent Market for agents owned by Sovereign Treasury...", { agentName: task.agentName, agentRole: "Admin" }));
+      onMessage(msg("agent-activity", "Scanning Agent Market for your agents...", { agentName: task.agentName, agentRole: "Admin" }));
       
       let ownedAgents: { id: string; role: string }[] = [];
       try {
         const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer"];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
-          // Filter to only agents owned by our deployer wallet
-          const deployerAddr = "0xdC646c197d0202FC2A0326af8ab55066A3549E2E";
           const mine = agents.filter((a: any) => 
-            String(a.owner || "").toLowerCase() === deployerAddr.toLowerCase()
+            String(a.owner || "").toLowerCase() === walletAddress.toLowerCase()
           );
           ownedAgents = ownedAgents.concat(mine.map((a: any) => ({ id: String(a.id), role })));
         }
@@ -483,30 +507,45 @@ async function executeInternalTask(
       }
 
       if (ownedAgents.length === 0) {
-        onMessage(msg("error", "No agents found owned by the Sovereign Treasury. Nothing to burn.", { agentName: task.agentName }));
+        onMessage(msg("error", "No agents found owned by your wallet. Nothing to burn.", { agentName: task.agentName }));
         break;
       }
 
-      // Burn all owned agents
+      // We need ethers and the contract
+      onMessage(msg("system", `Preparing to burn ${ownedAgents.length} agents. Please sign each transaction in your wallet.`));
       let burnedCount = 0;
-      for (const agent of ownedAgents) {
-        onMessage(msg("agent-activity", `Retiring **${agent.role} Agent #${agent.id}**...`, { agentName: task.agentName, agentRole: "Admin" }));
-        try {
-          const res = await fetch("/api/agent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "burn_agent", params: { agentId: agent.id } }),
-          });
-          const data = await res.json();
-          if (data.success && data.data?.status === "success") {
-            burnedCount++;
-            onMessage(msg("success", `Burned **${agent.role} Agent #${agent.id}**. Refund: **${data.data.refundOKB} OKB** | [View TX](https://www.okx.com/explorer/xlayer/tx/${data.data.txHash})`, { agentName: task.agentName }));
-          } else {
-            onMessage(msg("error", `Failed to burn ${agent.role} Agent #${agent.id}. Transaction reverted.`, { agentName: task.agentName }));
+      try {
+        const { ethers } = await import("ethers");
+        const { AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI } = await import("@/lib/contractConfig");
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI, signer);
+
+        for (const agent of ownedAgents) {
+          onMessage(msg("agent-activity", `Please sign transaction to retire **${agent.role} Agent #${agent.id}**...`, { agentName: task.agentName, agentRole: "Admin" }));
+          
+          try {
+            const tx = await contract.burnAgent(agent.id);
+            onMessage(msg("system", `Retiring Agent #${agent.id}. Waiting for confirmation...`));
+            const receipt = await tx.wait();
+            
+            if (receipt?.status === 1) {
+              burnedCount++;
+              
+              const burnEvent = receipt?.logs.map((log: any) => {
+                try { return contract.interface.parseLog(log); } catch { return null; }
+              }).find((e: any) => e?.name === "AgentBurned");
+              const refundAmount = burnEvent ? ethers.formatEther(burnEvent.args.refundAmount) : "0";
+              
+              onMessage(msg("success", `Burned **${agent.role} Agent #${agent.id}**. Refund: **${refundAmount} OKB** | [View TX](https://www.okx.com/explorer/xlayer/tx/${tx.hash})`, { agentName: task.agentName }));
+            }
+          } catch (e: any) {
+            onMessage(msg("error", `Failed to burn ${agent.role} Agent #${agent.id}. User may have rejected the signature.`));
+            break; // Stop loop if they reject one
           }
-        } catch (e) {
-          onMessage(msg("error", `Failed to connect for Agent #${agent.id}.`));
         }
+      } catch(e) {
+         onMessage(msg("error", "Error connecting to wallet provider for contract execution."));
       }
 
       if (burnedCount > 0) {
@@ -578,23 +617,13 @@ async function executeExternalTask(
     }
   }
 
-  // Step 2: Select best agent - Prioritize agents we already hired OR own!
+  // Step 2: Select best agent - Prioritize agents we own OR agents the treasury owns as fallback!
   const myTreasury = "0xdC646c197d0202FC2A0326af8ab55066A3549E2E";
-  
-  // Fetch hire history from the Sovereign contract
-  let alreadyHiredIds: number[] = [];
-  try {
-    const histRes = await callAgentAPI("get_hire_history");
-    if (histRes.success && Array.isArray(histRes.data)) {
-      alreadyHiredIds = histRes.data.map((h: any) => Number(h.agentId));
-    }
-  } catch (e) {
-    console.warn("Could not fetch hire history");
-  }
+  const userAddr = walletAddress || "";
 
   const reusableAgents = agents.filter((a: any) => 
-    (a.owner?.toLowerCase() === myTreasury.toLowerCase()) || 
-    alreadyHiredIds.includes(Number(a.id))
+    (userAddr && a.owner?.toLowerCase() === userAddr.toLowerCase()) || 
+    (a.owner?.toLowerCase() === myTreasury.toLowerCase())
   );
   
   let selected;
@@ -760,18 +789,47 @@ async function executeExternalTask(
             onMessage(msg("agent-activity", `Submitting swap to X Layer via OKX DEX...`, { agentName: selected.name, agentRole: role }));
             
             // Execute the actual swap
-            const executeRes = await callAgentAPI("swap_execute", { 
+            // Execute the actual swap via MetaMask
+            const executeRes = await callAgentAPI("get_swap_data", { 
               from: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", 
               to: targetToken, 
               amount: amountWei, 
+              userAddress: walletAddress,
               chain: "xlayer" 
             });
             
-            if (executeRes.success && executeRes.data?.status === "success") {
-              onMessage(msg("success", `Swap completed successfully! **${targetName}** has been added to your treasury.`, { agentName: selected.name }));
-              onMessage(msg("system", `View Swap Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${executeRes.data.txHash}`, { agentName: selected.name }));
+            if (executeRes.success && executeRes.data?.tx) {
+              onMessage(msg("system", "Please sign the swap transaction in your wallet...", { agentName: selected.name }));
+              try {
+                if (typeof window === "undefined" || !(window as any).ethereum) {
+                  throw new Error("No Web3 wallet found");
+                }
+                const { ethers } = await import("ethers");
+                const provider = new ethers.BrowserProvider((window as any).ethereum);
+                const signer = await provider.getSigner();
+                const txData = executeRes.data.tx;
+                
+                const tx = await signer.sendTransaction({
+                  to: txData.to,
+                  data: txData.data,
+                  value: txData.value
+                });
+                
+                onMessage(msg("system", "Swap submitted. Waiting for confirmation...", { agentName: selected.name }));
+                const receipt = await tx.wait();
+                
+                if (receipt?.status === 1) {
+                  onMessage(msg("success", `Swap completed successfully! **${targetName}** has been added to your wallet.`, { agentName: selected.name }));
+                  onMessage(msg("system", `View Swap Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${tx.hash}`, { agentName: selected.name }));
+                } else {
+                  onMessage(msg("error", "Swap execution failed on-chain. Please check your OKB balance for gas."));
+                }
+              } catch (e: any) {
+                console.error(e);
+                onMessage(msg("error", `Swap failed: ${e.message || "User denied transaction signature"}`, { agentName: selected.name }));
+              }
             } else {
-              onMessage(msg("error", "Swap execution failed on-chain. Please check your OKB balance for gas."));
+              onMessage(msg("error", "Failed to retrieve swap payload from OKX DEX.", { agentName: selected.name }));
             }
           } else {
             onMessage(msg("system", "Swap execution cancelled by user."));

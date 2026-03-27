@@ -52,28 +52,31 @@ export async function getAgentsByRole(role: string): Promise<ExternalAgent[]> {
 }
 
 /**
- * Registers agent usage on the LIVE AgentMarket.sol contract.
- * Calls: useAgent(agentId) → sends on-chain transaction
+ * Registers agent usage on the LIVE AgentMarket.sol contract via MetaMask.
+ * Calls: useAgent(agentId) → prompts user to sign transaction
  */
 export async function useAgent(agentId: number, taskType: string = "execution"): Promise<{ success: boolean; txHash: string }> {
   try {
-    const res = await fetch("/api/agent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "use_market_agent",
-        params: { agentId: agentId.toString() }
-      })
-    });
-    
-    const data = await res.json();
-    if (data.success && data.data?.status === "success") {
-      return { success: true, txHash: data.data.txHash };
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      throw new Error("No Web3 wallet found. Please install MetaMask.");
     }
+
+    const { ethers } = await import("ethers");
+    const { AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI } = await import("@/lib/contractConfig");
+
+    const provider = new ethers.BrowserProvider((window as any).ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(AGENT_MARKET_ADDRESS, AGENT_MARKET_ABI, signer);
+
+    const tx = await contract.useAgent(agentId);
+    const receipt = await tx.wait();
     
-    throw new Error(data.error || "useAgent transaction failed");
+    if (receipt?.status === 1) {
+      return { success: true, txHash: tx.hash };
+    }
+    throw new Error("Transaction reverted");
   } catch (error: any) {
     console.error("X402 payment failed:", error);
-    throw new Error(`On-chain useAgent failed: ${error.message || "Transaction reverted"}`);
+    throw new Error(`On-chain useAgent failed: ${error.message || "User denied transaction signature"}`);
   }
 }
