@@ -494,7 +494,7 @@ async function executeInternalTask(
       
       let ownedAgents: { id: string; role: string }[] = [];
       try {
-        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer"];
+        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);
           const mine = agents.filter((a: any) => 
@@ -557,7 +557,7 @@ async function executeInternalTask(
     case "list_agents": {
       onMessage(msg("agent-activity", "Scanning the on-chain Agent Market for all active agents...", { agentName: task.agentName || "MarketScanner", agentRole: "Admin" }));
       try {
-        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer"];
+        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"];
         let allAgents: any[] = [];
         for (const role of roles) {
           const agents = await getAgentsByRole(role);

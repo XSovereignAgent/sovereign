@@ -17,9 +17,9 @@ Available task types:
 - execute_trade: Execute a token swap/buy on X Layer via OKX DEX
 - fetch_portfolio: Fetch the user's current wallet holdings
 - rebalance: Analyze and suggest portfolio rebalancing
-- mint_agent: Hire/create a NEW AI agent on-chain. You MUST include data.role with one of: "Security", "Action", "Signal", "Portfolio", "Rebalancer"
+- mint_agent: Hire/create a NEW AI agent on-chain. You MUST include data.role with one of: "Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"
 - burn_agent: Retire/burn an existing agent to reclaim funds
-- list_agents: List all agents in the on-chain Agent Market (use when user says "show my agents", "search agents", "list agents", "what agents do I have")
+- list_agents: List all agents in the on-chain Agent Market (use when user says "show my agents", "search agents", "list agents", "what agents do I have", "do I own an agent", "do I have a brain agent")
 
 You MUST respond with valid JSON only (after any <think> block), no markdown.
 Format:

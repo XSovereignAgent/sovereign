@@ -77,7 +77,7 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     },
   },
   {
-    pattern: /\b(list\s*agent|show\s*agent|my\s*agent|search\s*agent|all\s*agent)/i,
+    pattern: /\b(list|show|my|search|all|have|own|find|what)\b.*\bagent/i,
     intent: "list_agents",
     task: {
       type: "list_agents",
