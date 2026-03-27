@@ -431,8 +431,9 @@ async function executeInternalTask(
                assets.push({ tokenAssets: [injectedOKB] });
             }
           }
-        } catch (fallbackErr) {
+        } catch (fallbackErr: any) {
           console.warn("Ethers OKB fallback failed:", fallbackErr);
+          onMessage(msg("system", `⚠️ [Diagnostics] Fallback RPC Error: ${fallbackErr?.message || "Unknown error"}`));
         }
 
         const hasTokens = assets.some((group: any) => (group?.tokenAssets || []).length > 0);
