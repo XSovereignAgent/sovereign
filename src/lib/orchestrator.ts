@@ -401,7 +401,7 @@ async function executeInternalTask(
         // Fallback: If OKX API fails or returns empty, forcibly inject native OKB balance using ethers
         try {
           const { ethers } = await import("ethers");
-          let rawBal = 0n;
+          let rawBal = BigInt(0);
           
           if (typeof window !== "undefined" && (window as any).ethereum) {
             const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -412,7 +412,7 @@ async function executeInternalTask(
             rawBal = await provider.getBalance(addr);
           }
           
-          if (rawBal > 0n) {
+          if (rawBal > BigInt(0)) {
             const okbStr = ethers.formatEther(rawBal);
             const injectedOKB = {
               tokenSymbol: "OKB",
@@ -437,18 +437,6 @@ async function executeInternalTask(
         }
 
         let hasTokens = assets.some((group: any) => (group?.tokenAssets || []).length > 0);
-        
-        // HARD HACKATHON FIX: if still empty (due to network mismatch / empty wallet), inject full demo portfolio
-        if (!hasTokens) {
-           assets = [{
-             tokenAssets: [
-               { tokenSymbol: "OKB", tokenAmount: "10.000", availableAmount: "10.00", balanceUsd: "500.00", tokenPrice: "50" },
-               { tokenSymbol: "USDC", tokenAmount: "1500.00", availableAmount: "1500.00", balanceUsd: "1500.00", tokenPrice: "1" },
-               { tokenSymbol: "Xwizard", tokenAmount: "25000", availableAmount: "25000", balanceUsd: "3.50", tokenPrice: "0.00014" }
-             ]
-           }];
-           hasTokens = true;
-        }
 
         if (hasTokens) {
           onMessage(
@@ -650,15 +638,8 @@ async function executeExternalTask(
   // Step 1: Fetch agents
   const agents = await getAgentsByRole(role);
   if (agents.length === 0) {
-    onMessage(msg("system", `⚠️ No ${role} agents found on the live contract. Injecting a Sovereign Deployer Agent to keep the demo alive...`, { agentName: "Orchestrator" }));
-    agents.push({
-      id: 9999,
-      name: `Hackathon ${role} Agent`,
-      role: role,
-      price: "0.0001",
-      usageCount: 0,
-      owner: myTreasury
-    });
+    onMessage(msg("error", `No agents found for role "${role}" on the live X-Agent Market contract. You must type **"mint an execution agent"** first!`));
+    return;
   }
 
   // Guard: skip security scan if no tokens are in the pipeline
