@@ -463,39 +463,54 @@ async function executeInternalTask(
     }
 
     case "burn_agent": {
-      // Dynamically find the most recently hired agent
-      let agentIdToBurn: string | null = null;
+      // Query the actual AgentMarket contract for agents we own
+      onMessage(msg("agent-activity", "Scanning Agent Market for agents owned by Sovereign Treasury...", { agentName: task.agentName, agentRole: "Admin" }));
+      
+      let ownedAgents: { id: string; role: string }[] = [];
       try {
-        const histRes = await callAgentAPI("get_hire_history");
-        if (histRes.success && Array.isArray(histRes.data) && histRes.data.length > 0) {
-          const last = histRes.data[histRes.data.length - 1];
-          agentIdToBurn = String(last.agentId);
+        const roles = ["Security", "Action", "Signal", "Portfolio", "Rebalancer"];
+        for (const role of roles) {
+          const agents = await getAgentsByRole(role);
+          // Filter to only agents owned by our deployer wallet
+          const deployerAddr = "0xdC646c197d0202FC2A0326af8ab55066A3549E2E";
+          const mine = agents.filter((a: any) => 
+            String(a.owner || "").toLowerCase() === deployerAddr.toLowerCase()
+          );
+          ownedAgents = ownedAgents.concat(mine.map((a: any) => ({ id: String(a.id), role })));
         }
       } catch (e) {
-        console.warn("Could not fetch hire history for burn");
+        console.warn("Could not query AgentMarket for owned agents");
       }
 
-      if (!agentIdToBurn) {
-        onMessage(msg("error", "No agents found in your Sovereign registry to retire. First, mint an agent from the Agent Market.", { agentName: task.agentName }));
+      if (ownedAgents.length === 0) {
+        onMessage(msg("error", "No agents found owned by the Sovereign Treasury. Nothing to burn.", { agentName: task.agentName }));
         break;
       }
 
-      onMessage(msg("agent-activity", `Retiring Agent ID: **${agentIdToBurn}** from Sovereign registry to reclaim treasury funds...`, { agentName: task.agentName, agentRole: "Admin" }));
-      try {
-        const res = await fetch("/api/agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "burn_agent", params: { agentId: agentIdToBurn } }),
-        });
-        const data = await res.json();
-        if (data.success && data.data?.status === "success") {
-          onMessage(msg("success", `Successfully retired Agent **#${agentIdToBurn}**. Sovereign Treasury reclaimed: **${data.data.refundOKB} OKB**.`, { agentName: task.agentName }));
-          onMessage(msg("system", `View Burn Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${data.data.txHash}`));
-        } else {
-          onMessage(msg("error", `Failed to retire Agent #${agentIdToBurn}. It may not be owned by the treasury or the transaction reverted.`, { agentName: task.agentName }));
+      // Burn all owned agents
+      let burnedCount = 0;
+      for (const agent of ownedAgents) {
+        onMessage(msg("agent-activity", `Retiring **${agent.role} Agent #${agent.id}**...`, { agentName: task.agentName, agentRole: "Admin" }));
+        try {
+          const res = await fetch("/api/agent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "burn_agent", params: { agentId: agent.id } }),
+          });
+          const data = await res.json();
+          if (data.success && data.data?.status === "success") {
+            burnedCount++;
+            onMessage(msg("success", `Burned **${agent.role} Agent #${agent.id}**. Refund: **${data.data.refundOKB} OKB** | [View TX](https://www.okx.com/explorer/xlayer/tx/${data.data.txHash})`, { agentName: task.agentName }));
+          } else {
+            onMessage(msg("error", `Failed to burn ${agent.role} Agent #${agent.id}. Transaction reverted.`, { agentName: task.agentName }));
+          }
+        } catch (e) {
+          onMessage(msg("error", `Failed to connect for Agent #${agent.id}.`));
         }
-      } catch (e) {
-        onMessage(msg("error", "Failed to connect to Agent Market."));
+      }
+
+      if (burnedCount > 0) {
+        onMessage(msg("success", `Successfully retired **${burnedCount}/${ownedAgents.length}** agents from the Agent Market.`, { agentName: task.agentName }));
       }
       break;
     }
