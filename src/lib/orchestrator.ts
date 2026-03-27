@@ -837,9 +837,11 @@ async function executeExternalTask(
     }
     // External execution agent fetches real swap quote
     try {
-      // Use the first safe token from the pipeline context if available, otherwise swap for USDC
-      const targetToken = ctx?.safeTokens?.length ? ctx.safeTokens[0].address : "0x74b7f16337b8972027f6196a17a631ac6de26d22";
-      const targetName = ctx?.safeTokens?.length ? ctx.safeTokens[0].name : "USDC";
+      // Use the first safe token from the pipeline context if available, otherwise swap for USDC.e (Bridged)
+      // Native USDC: 0x74b7f16337b8972027f6196a17a631ac6de26d22
+      // Bridged USDC.e: 0xA8CE8aee21bC2A48a5EF670afCc9274C7bbbC035 (Better liquidity usually)
+      const targetToken = ctx?.safeTokens?.length ? ctx.safeTokens[0].address : "0xA8CE8aee21bC2A48a5EF670afCc9274C7bbbC035";
+      const targetName = ctx?.safeTokens?.length ? ctx.safeTokens[0].name : "USDC.e";
 
       let amountWei = "1000000000000000"; // fallback to 0.001 OKB
       if (task.data?.amountStr) {
