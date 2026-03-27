@@ -38,6 +38,7 @@ export async function getAgentsByRole(role: string): Promise<ExternalAgent[]> {
         id: a.id,
         name: `${a.role}Agent #${a.id}`,
         role: role, // Map back to internal role
+        owner: a.owner, // VERY IMPORTANT: needed for orchestrator to detect ownership
         price: (Number(a.price) / 1e18).toFixed(6), // Wei → OKB
         usageCount: a.usageCount,
         metadataURI: a.metadataURI || "",
