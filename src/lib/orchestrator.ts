@@ -401,9 +401,16 @@ async function executeInternalTask(
         // Fallback: If OKX API fails or returns empty, forcibly inject native OKB balance using ethers
         try {
           const { ethers } = await import("ethers");
-          const { XLAYER_RPC } = await import("@/lib/contractConfig");
-          const provider = new ethers.JsonRpcProvider(XLAYER_RPC);
-          const rawBal = await provider.getBalance(addr);
+          let rawBal = 0n;
+          
+          if (typeof window !== "undefined" && (window as any).ethereum) {
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
+            rawBal = await provider.getBalance(addr);
+          } else {
+            const { XLAYER_RPC } = await import("@/lib/contractConfig");
+            const provider = new ethers.JsonRpcProvider(XLAYER_RPC);
+            rawBal = await provider.getBalance(addr);
+          }
           
           if (rawBal > 0n) {
             const okbStr = ethers.formatEther(rawBal);
