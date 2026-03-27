@@ -633,18 +633,29 @@ async function executeExternalTask(
   const role = roleMap[task.type] || "Brain";
 
   onMessage(
-    msg("agent-activity", `This task requires a specialized agent. Searching X-Agent Market...`, {
+    msg("agent-activity", `Connecting to Agent Market (0x38Af...dAC3) to hire specialized infrastructure...`, {
       agentName: "Orchestrator",
       agentRole: "Router",
     })
   );
   await delay(300);
 
-  // Step 1: Fetch agents
-  let agents = await getAgentsByRole(role);
-  if (agents.length === 0 && role !== role.toLowerCase()) {
-    agents = await getAgentsByRole(role.toLowerCase());
+  // Step 1: Fetch agents - Try both Title Case and lowercase as the contract is inconsistent
+  const rolesToTry = [role];
+  if (role.toLowerCase() !== role) rolesToTry.push(role.toLowerCase());
+  
+  // Also try specific partner mappings if needed
+  if (role === "Execution") rolesToTry.push("Action", "execution", "action");
+  if (role === "Research") rolesToTry.push("signal", "research", "Signal");
+
+  let agents: any[] = [];
+  for (const r of rolesToTry) {
+    const fetched = await getAgentsByRole(r);
+    if (fetched.length > 0) {
+      agents = [...agents, ...fetched];
+    }
   }
+
   if (agents.length === 0) {
     onMessage(msg("error", `No agents found for role "${role}" on the live X-Agent Market contract. You must type **"mint an execution agent"** first!`));
     return;

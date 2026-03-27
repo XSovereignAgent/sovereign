@@ -7,20 +7,12 @@
 import { ExternalAgent } from "@/types";
 
 // Maps X-Sovereign internal roles → partner's on-chain role names
-const ROLE_MAP: Record<string, string> = {
-  signal: "Research",
-  security: "Security",
-  execution: "Action",
-  custom: "Brain",
-  economy: "Economy",
-};
-
 /**
  * Fetches agents from the LIVE AgentMarket.sol contract by role.
  * Calls: getAgentsByRole(role) → reads on-chain data
  */
 export async function getAgentsByRole(role: string): Promise<ExternalAgent[]> {
-  const contractRole = ROLE_MAP[role] || role;
+  const contractRole = role;
   
   try {
     const res = await fetch("/api/agent", {
