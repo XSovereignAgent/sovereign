@@ -102,6 +102,11 @@ export function parseCommand(input: string): ParsedIntent {
         if (match) {
           taskData = { amountStr: match[1], token: match[2].toUpperCase() };
         }
+      } else if (intent === "burn_agent" || intent === "mint_agent") {
+        const roleMatch = input.match(/\b(brain|security|research|execution|economy|action|signal|portfolio|rebalancer)\b/i);
+        if (roleMatch) {
+          taskData = { role: roleMatch[1].charAt(0).toUpperCase() + roleMatch[1].slice(1).toLowerCase() };
+        }
       }
 
       tasks.push({ ...task, data: taskData });

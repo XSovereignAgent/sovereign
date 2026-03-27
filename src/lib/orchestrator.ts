@@ -526,8 +526,13 @@ async function executeInternalTask(
       
       let ownedAgents: { id: string; role: string }[] = [];
       try {
+        const targetRole = task.data?.role?.toLowerCase();
         const roles = ["Brain", "brain", "Research", "research", "Security", "security", "Execution", "execution", "Economy", "economy"];
-        for (const role of roles) {
+        
+        // Filter roles based on user request if specified
+        const searchRoles = targetRole ? roles.filter(r => r.toLowerCase() === targetRole) : roles;
+
+        for (const role of searchRoles) {
           const agents = await getAgentsByRole(role);
           const mine = agents.filter((a: any) => 
             String(a.owner || "").toLowerCase() === walletAddress.toLowerCase()

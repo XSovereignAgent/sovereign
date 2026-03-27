@@ -18,7 +18,7 @@ Available task types:
 - fetch_portfolio: Fetch the user's current wallet holdings
 - rebalance: Analyze and suggest portfolio rebalancing
 - mint_agent: Hire/create a NEW AI agent on-chain. You MUST include data.role with one of: "Security", "Action", "Signal", "Portfolio", "Rebalancer", "Brain"
-- burn_agent: Retire/burn an existing agent to reclaim funds
+- burn_agent: Retire/burn an existing agent to reclaim funds. You MUST include data.role if the user specifies it (e.g., "Brain", "Security") or "all" to burn all owned agents.
 - list_agents: List all agents in the on-chain Agent Market (use when user says "show my agents", "search agents", "list agents", "what agents do I have", "do I own an agent", "do I have a brain agent")
 
 You MUST respond with valid JSON only (after any <think> block), no markdown.
