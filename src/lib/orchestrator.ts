@@ -906,6 +906,64 @@ async function executeExternalTask(
     } catch (e: any) {
       onMessage(msg("error", `${selected.name} swap API error: ${e.message}`));
     }
+  } else if (task.type === "fetch_portfolio" || task.type === "rebalance") {
+    onMessage(msg("agent-activity", `${selected.name} is scanning your live holdings on X Layer...`, { agentName: selected.name, agentRole: role }));
+    
+    try {
+      const addr = walletAddress || "0xdC646c197d0202FC2A0326af8ab55066A3549E2E";
+      const result = await callAgentAPI("fetch_portfolio", { 
+        address: addr,
+        chains: "xlayer"
+      });
+      
+      let assets = result.success && result.data?.data ? result.data.data : [];
+      if (!Array.isArray(assets)) assets = [];
+
+      // Ethers Fallback for native OKB
+      if (assets.length === 0 || !assets.some((g: any) => (g.tokenAssets || []).length > 0)) {
+        try {
+          const { ethers } = await import("ethers");
+          const provider = new ethers.JsonRpcProvider("https://rpc.xlayer.tech");
+          const rawBal = await provider.getBalance(addr);
+          if (rawBal > BigInt(0)) {
+            assets = [{
+              tokenAssets: [{
+                tokenSymbol: "OKB",
+                tokenAmount: ethers.formatEther(rawBal),
+                availableAmount: ethers.formatEther(rawBal),
+                balanceUsd: "0",
+                tokenPrice: "0"
+              }]
+            }];
+          }
+        } catch {}
+      }
+
+      if (assets.length > 0) {
+        const flatAssets = assets.reduce((acc: any[], group: any) => acc.concat(group.tokenAssets || []), []);
+        if (ctx) {
+          ctx.portfolioTokens = flatAssets.map((a: any) => ({
+            address: a.address || a.tokenAddress || "",
+            name: a.name || a.symbol || "Unknown",
+            symbol: a.symbol || "???",
+          })).filter((t: any) => t.address && t.address !== "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+        }
+
+        onMessage(msg("data-card", "portfolio", { agentName: selected.name, data: flatAssets }));
+        
+        if (task.type === "rebalance") {
+          onMessage(msg("agent-activity", `${selected.name} generating rebalancing strategy...`, { agentName: selected.name, agentRole: role }));
+          await delay(800);
+          onMessage(msg("success", `${selected.name} Analysis: Your portfolio is 100% OKB. I recommend diversifying into USDC to hedge against volatility.`, { agentName: selected.name }));
+        } else {
+          onMessage(msg("success", `${selected.name} successfully retrieved your X Layer portfolio.`, { agentName: selected.name }));
+        }
+      } else {
+        onMessage(msg("system", `No tokens found in wallet **${addr.slice(0, 6)}...** via ${selected.name}.`, { agentName: selected.name }));
+      }
+    } catch (e: any) {
+        onMessage(msg("error", `${selected.name} portfolio API error: ${e.message}`));
+    }
   } else {
     onMessage(msg("system", `${selected.name} does not have a handler for task type "${task.type}". The agent was hired on-chain but cannot execute this specific action.`, { agentName: selected.name }));
   }

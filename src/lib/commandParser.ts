@@ -12,7 +12,7 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     task: {
       type: "fetch_trends",
       label: "Fetch trending tokens via OKX Signal",
-      source: "internal",
+      source: "external",
       agentName: "TrendAnalyzer",
     },
   },
@@ -42,7 +42,7 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     task: {
       type: "fetch_portfolio",
       label: "Fetch portfolio data",
-      source: "internal",
+      source: "external",
       agentName: "PortfolioManager",
     },
   },
@@ -52,7 +52,7 @@ const INTENT_PATTERNS: { pattern: RegExp; intent: string; task: AgentTask }[] = 
     task: {
       type: "rebalance",
       label: "Rebalance portfolio holdings",
-      source: "internal",
+      source: "external",
       agentName: "RebalancerAgent",
     },
   },
