@@ -283,7 +283,7 @@ function AgentSidebar({ activeAgent, contractStats, walletBalance }: { activeAge
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 LIVE on X Layer
               </div>
-              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">0xF53e...470C</div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">0x38Af...dAC3</div>
               <div className="text-[10px] text-gray-500 mt-0.5">{contractStats ? contractStats.agentsMinted : "5"} agents minted</div>
             </div>
           </div>
