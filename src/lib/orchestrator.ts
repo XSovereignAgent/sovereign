@@ -651,27 +651,50 @@ async function executeExternalTask(
     }
   }
 
-  // Step 2: Select best agent - Prioritize agents we own OR agents the treasury owns as fallback!
+  // Step 2: Select best agent - Prioritize agents we own OR agents the treasury owns!
   const myTreasury = "0xdC646c197d0202FC2A0326af8ab55066A3549E2E";
   const userAddr = walletAddress || "";
 
-  const reusableAgents = agents.filter((a: any) => 
+  let reusableAgents = agents.filter((a: any) => 
     (userAddr && a.owner?.toLowerCase() === userAddr.toLowerCase()) || 
     (a.owner?.toLowerCase() === myTreasury.toLowerCase())
   );
   
+  if (reusableAgents.length === 0) {
+    onMessage(msg("system", `You do not own an agent for the **${role}** role. Auto-minting one for you now...`));
+    
+    // Auto-Mint flow natively via executeInternalTask
+    const mintTask: AgentTask = {
+      type: "mint_agent",
+      label: `Autonomous Agent Minting (${role})`,
+      source: "internal",
+      agentName: "AgentSpawner",
+      data: { role: role }
+    };
+    
+    await executeInternalTask(mintTask, onMessage, walletAddress, ctx, waitForAction);
+
+    // After mint_agent completes, we MUST re-fetch agents to find the newly minted one!
+    onMessage(msg("agent-activity", `Re-scanning Agent Market for your new ${role} Agent...`, { agentName: "Orchestrator" }));
+    const newAgents = await getAgentsByRole(role);
+    reusableAgents = newAgents.filter((a: any) => 
+      (userAddr && a.owner?.toLowerCase() === userAddr.toLowerCase()) || 
+      (a.owner?.toLowerCase() === myTreasury.toLowerCase())
+    );
+
+    if (reusableAgents.length === 0) {
+      onMessage(msg("error", `Auto-minting did not complete successfully. Cannot proceed with task.`));
+      return;
+    }
+  }
+
   let selected;
   let isAlreadyHired = false;
-  if (reusableAgents.length > 0) {
-    // Pick the one we most recently hired/minted (highest ID)
-    selected = reusableAgents.sort((a: any, b: any) => b.id - a.id)[0];
-    isAlreadyHired = true;
-    onMessage(msg("agent-activity", `Reusing existing **${selected.name}** (ID: ${selected.id}) from Sovereign registry...`, { agentName: "Orchestrator" }));
-  } else {
-    // Fallback to market selection
-    selected = agents.sort((a: any, b: any) => a.usageCount - b.usageCount)[0];
-    onMessage(msg("agent-activity", `Found **${selected.name}** (ID: ${selected.id}) on X-Agent Market`, { agentName: "Orchestrator" }));
-  }
+  
+  // Pick the one we most recently hired/minted (highest ID)
+  selected = reusableAgents.sort((a: any, b: any) => b.id - a.id)[0];
+  isAlreadyHired = true;
+  onMessage(msg("agent-activity", `Using existing **${selected.name}** (ID: ${selected.id}) from Sovereign registry...`, { agentName: "Orchestrator" }));
   await delay(200);
 
   // Step 3: Pay via X402 (Skip if already hired!)
