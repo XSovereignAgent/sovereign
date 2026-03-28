@@ -12,6 +12,7 @@ import {
   getSwapDataReal,
   getSwapQuoteReal,
   fetchLeaderboardReal,
+  getApproveDataReal,
 } from "@/lib/okxLive";
 
 export async function POST(req: NextRequest) {
@@ -219,6 +220,33 @@ export async function POST(req: NextRequest) {
             to: txData.to,
             data: txData.data,
             value: txData.value || "0"
+          }
+        };
+        break;
+      }
+
+      case "get_approve_data": {
+        if (!params?.token || !params?.amount) {
+          return NextResponse.json({ error: "Missing approve parameters" }, { status: 400 });
+        }
+
+        const approveDataRaw: any = await getApproveDataReal(params.token, params.amount, params?.chain || "xlayer");
+        
+        if (approveDataRaw?.ok === false) {
+          throw new Error(approveDataRaw.error || "OKX DEX returned an error for approve");
+        }
+        
+        const txData = Array.isArray(approveDataRaw?.data) ? approveDataRaw.data[0] : approveDataRaw?.data;
+
+        if (!txData || !txData.data || !txData.dexContractAddress) {
+          throw new Error("No valid approve transaction data returned.");
+        }
+
+        result = {
+          tx: {
+            to: txData.dexContractAddress,
+            data: txData.data,
+            value: "0"
           }
         };
         break;

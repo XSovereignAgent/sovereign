@@ -195,6 +195,31 @@ export async function getSwapDataReal(
   };
 }
 
+// ========== APPROVE EXECUTION (Direct HTTP API) ==========
+
+export async function getApproveDataReal(
+  tokenContractAddress: string,
+  approveAmount: string,
+  chain = "xlayer"
+) {
+  const chainIndex = CHAIN_IDS[chain] || "196";
+
+  const result = await okxGet("/api/v6/dex/aggregator/approve-transaction", {
+    chainIndex,
+    tokenContractAddress,
+    approveAmount,
+  });
+
+  if (result?.code === "0" && result?.data?.length > 0) {
+    return { ok: true, data: result.data };
+  }
+
+  return {
+    ok: false,
+    error: result?.msg || result?.error || `OKX API returned code ${result?.code}`,
+  };
+}
+
 // ========== LEADERBOARD (CLI with fallback) ==========
 
 export async function fetchLeaderboardReal(chain = "xlayer", timeFrame = "3", sortBy = "1") {

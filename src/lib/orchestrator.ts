@@ -885,30 +885,54 @@ async function executeExternalTask(
         if (waitForAction) {
           const confirmed = await waitForAction();
           if (confirmed) {
-            onMessage(msg("agent-activity", `Submitting swap to X Layer via OKX DEX...`, { agentName: selected.name, agentRole: role }));
-            
-            // Execute the actual swap
-            // Execute the actual swap via MetaMask
-            const executeRes = await callAgentAPI("get_swap_data", { 
-              from: fromTokenAddr, 
-              to: toTokenAddr, 
-              amount: amountWei, 
-              userAddress: walletAddress,
-              chain: "xlayer" 
-            });
-            
-            if (executeRes.success && executeRes.data?.tx) {
-              if (isSell) {
-                onMessage(msg("system", `⚠️ **Allowance Required:** Selling an ERC-20 token requires approval. If the transaction fails, please ensure you have granted token spending approval to the DEX router in your OKX Wallet first.`, { agentName: selected.name }));
+            try {
+              if (typeof window === "undefined" || !(window as any).ethereum) {
+                throw new Error("No Web3 wallet found");
               }
-              onMessage(msg("system", "Please sign the swap transaction in your wallet...", { agentName: selected.name }));
-              try {
-                if (typeof window === "undefined" || !(window as any).ethereum) {
-                  throw new Error("No Web3 wallet found");
+              const { ethers } = await import("ethers");
+              const provider = new ethers.BrowserProvider((window as any).ethereum);
+              const signer = await provider.getSigner();
+
+              // --- APPROVAL STEP (Only if selling ERC-20) ---
+              if (isSell) {
+                onMessage(msg("agent-activity", `Approving DEX Router to spend your ${targetName}...`, { agentName: selected.name, agentRole: role }));
+                
+                const approveRes = await callAgentAPI("get_approve_data", { 
+                  token: fromTokenAddr, 
+                  amount: amountWei, 
+                  chain: "xlayer" 
+                });
+                
+                if (approveRes.success && approveRes.data?.tx) {
+                  onMessage(msg("system", `Please sign the **Approval** transaction in your wallet first...`, { agentName: selected.name }));
+                  const approveTxData = approveRes.data.tx;
+                  const approveTx = await signer.sendTransaction({
+                    to: approveTxData.to,
+                    data: approveTxData.data,
+                    value: "0" // approvals don't send ETH
+                  });
+                  onMessage(msg("system", "Approval submitted. Waiting for confirmation...", { agentName: selected.name }));
+                  await approveTx.wait();
+                  onMessage(msg("success", "Approval confirmed! Proceeding to swap..."));
+                } else {
+                  throw new Error(approveRes.error || "Failed to fetch approval transaction payload from OKX DEX.");
                 }
-                const { ethers } = await import("ethers");
-                const provider = new ethers.BrowserProvider((window as any).ethereum);
-                const signer = await provider.getSigner();
+              }
+
+              // --- SWAP STEP ---
+              onMessage(msg("agent-activity", `Submitting swap to X Layer via OKX DEX...`, { agentName: selected.name, agentRole: role }));
+              
+              const executeRes = await callAgentAPI("get_swap_data", { 
+                from: fromTokenAddr, 
+                to: toTokenAddr, 
+                amount: amountWei, 
+                userAddress: walletAddress,
+                chain: "xlayer" 
+              });
+              
+              if (executeRes.success && executeRes.data?.tx) {
+                onMessage(msg("system", "Please sign the **Swap** transaction in your wallet...", { agentName: selected.name }));
+                
                 const txData = executeRes.data.tx;
                 
                 const tx = await signer.sendTransaction({
@@ -927,14 +951,14 @@ async function executeExternalTask(
                 } else {
                   onMessage(msg("error", "Swap execution failed on-chain. Please check your OKB balance for gas."));
                 }
-              } catch (e: any) {
-                console.error(e);
-                onMessage(msg("error", `Swap failed: ${e.message || "User denied transaction signature"}`, { agentName: selected.name }));
+              } else {
+                const apiError = executeRes.error || executeRes.data?.msg || executeRes.data?.description || "Unknown error";
+                console.error("Swap payload response:", JSON.stringify(executeRes));
+                onMessage(msg("error", `Failed to retrieve swap payload: ${apiError}`, { agentName: selected.name }));
               }
-            } else {
-              const apiError = executeRes.error || executeRes.data?.msg || executeRes.data?.description || "Unknown error";
-              console.error("Swap payload response:", JSON.stringify(executeRes));
-              onMessage(msg("error", `Failed to retrieve swap payload: ${apiError}`, { agentName: selected.name }));
+            } catch (e: any) {
+              console.error(e);
+              onMessage(msg("error", `Execution failed: ${e.message || "User denied transaction signature"}`, { agentName: selected.name }));
             }
           } else {
             onMessage(msg("system", "Swap execution cancelled by user."));
