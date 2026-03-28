@@ -12,9 +12,13 @@ const ONCHAINOS_PATH = process.env.ONCHAINOS_PATH || "onchainos";
 
 async function runCommand(command: string): Promise<string> {
   try {
+    const isWin = process.platform === "win32";
+    const sep = isWin ? ";" : ":";
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const localBin = isWin ? `${home}\\.local\\bin` : `${home}/.local/bin`;
     const env = {
       ...process.env,
-      PATH: `${process.env.USERPROFILE}\\.local\\bin;${process.env.PATH}`,
+      PATH: `${localBin}${sep}/usr/local/bin${sep}${process.env.PATH}`,
     };
     const { stdout, stderr } = await execAsync(`${ONCHAINOS_PATH} ${command}`, {
       timeout: 30000,
