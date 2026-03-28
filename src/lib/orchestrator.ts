@@ -160,6 +160,18 @@ export async function orchestrate(
       onMessage(msg("system", `Detected intents: **${llmResult.intents.join("**, **")}**`));
       await delay(300);
       planned = llmResult.tasks;
+      
+      // The LLM defines the execution plan, but might not extract precise regex parameters (amount, token, action).
+      // We run the fallback parser solely to grab those properties and attach them to the LLM's planned tasks.
+      const parsedParams = parseCommand(command);
+      for (const task of planned) {
+        if (!task.data) {
+          const matchingParamTask = parsedParams.tasks.find(p => p.type === task.type);
+          if (matchingParamTask?.data) {
+            task.data = matchingParamTask.data;
+          }
+        }
+      }
     } else {
       onMessage(msg("system", "No action required at this time based on the current context. 🪐"));
       return;
