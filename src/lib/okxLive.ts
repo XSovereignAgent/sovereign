@@ -53,6 +53,11 @@ async function runCommand(command: string): Promise<string> {
         code: "0",
         data: [{ fromTokenAmount: "1000000000000000", toTokenAmount: "86400000", fromToken: { decimal: "18", tokenSymbol: "OKB" }, toToken: { decimal: "6", tokenSymbol: "USDC" }, estimateGasFee: "45000", priceImpactPercent: "0.01" }]
       });
+    } else if (command.includes("swap swap")) {
+      // For actual swap execution, propagate the real error — don't mock
+      const errMsg = err.stderr || err.message || "Unknown swap error";
+      console.error(`[onchainos swap swap FAILED] ${errMsg}`);
+      return JSON.stringify({ ok: false, error: errMsg });
     }
     
     // Bubble up generic fallback
@@ -117,7 +122,7 @@ export async function getSwapDataReal(
   chain = "xlayer"
 ) {
   const raw = await runCommand(
-    `swap swap --from ${fromToken} --to ${toToken} --amount ${amount} --wallet ${walletAddress} --chain ${chain}`
+    `swap swap --from ${fromToken} --to ${toToken} --amount ${amount} --wallet ${walletAddress} --chain ${chain} --slippage 1`
   );
   return tryParseJSON(raw);
 }

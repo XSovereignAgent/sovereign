@@ -200,10 +200,16 @@ export async function POST(req: NextRequest) {
 
         // 1. Get transaction data from OKX DEX CLI for the CONNECTED user wallet
         const swapDataRaw: any = await getSwapDataReal(params.from, params.to, params.amount, params.userAddress, params?.chain || "xlayer");
+        
+        // Handle CLI error responses (e.g. { ok: false, error: "..." })
+        if (swapDataRaw?.ok === false) {
+          throw new Error(swapDataRaw.error || "OKX DEX returned an error");
+        }
+        
         const txData = Array.isArray(swapDataRaw?.data) ? swapDataRaw.data[0]?.tx : swapDataRaw?.data?.[0]?.tx;
 
         if (!txData || !txData.data) {
-          throw new Error("Could not retrieve valid swap transaction data from OKX DEX");
+          throw new Error("No valid swap transaction data returned. The token pair may lack liquidity on X Layer.");
         }
 
         // 2. Return the raw payload exactly as the OKX API provides it
