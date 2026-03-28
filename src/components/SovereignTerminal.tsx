@@ -8,6 +8,8 @@ import { TrendingToken, PortfolioAsset, SecurityResult, SwapResult } from "@/lib
 import { useWallet } from "@/lib/walletContext";
 import { saveSession, loadLastSession, getMemorySummary, clearMemory } from "@/lib/memory";
 import { ContractStats } from "@/types";
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 // ============================================
 // LOGO COMPONENT
@@ -38,23 +40,42 @@ function SovereignLogo({ className = "w-8 h-8" }: { className?: string }) {
 // DATA CARD COMPONENTS
 // ============================================
 
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Prevent hydration mismatch
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="w-8 h-8 pointer-events-none" />;
+  
+  return (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="p-1.5 rounded-lg border border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-white/[0.03] text-gray-600 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors"
+      title="Toggle Theme"
+    >
+      {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+    </button>
+  );
+}
+
 function TrendingCard({ tokens }: { tokens: TrendingToken[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
       {tokens.map((t, i) => (
         <div
           key={`${t.symbol}-${i}`}
-          className="bg-gradient-to-br from-[#1a1a2e] to-[#16162a] rounded-xl p-4 border border-white/5 hover:border-emerald-500/30 transition-all group"
+          className="bg-gradient-to-br from-white to-[#f4f4f5] dark:from-[#1a1a2e] dark:to-[#16162a] rounded-xl p-4 border border-gray-200 dark:border-white/5 hover:border-emerald-300 dark:border-emerald-500/30 transition-all group"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="font-bold text-white text-sm">{t.symbol}</span>
+            <span className="font-bold text-gray-900 dark:text-white text-sm">{t.symbol}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
               {t.change24h}
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-2">{t.name}</p>
           <div className="flex items-end justify-between">
-            <span className="text-lg font-bold text-white">{t.price}</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">{t.price}</span>
             <span className="text-[10px] text-gray-600">Vol: {t.volume}</span>
           </div>
         </div>
@@ -83,7 +104,7 @@ function PortfolioCard({ data }: { data: any }) {
   }, 0);
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16162a] rounded-xl p-5 border border-white/5 mt-2">
+    <div className="bg-gradient-to-br from-white to-[#f4f4f5] dark:from-[#1a1a2e] dark:to-[#16162a] rounded-xl p-5 border border-gray-200 dark:border-white/5 mt-2">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-2 h-2 rounded-full bg-emerald-400" />
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -92,7 +113,7 @@ function PortfolioCard({ data }: { data: any }) {
       </div>
       
       {/* Allocation bar */}
-      <div className="flex h-3 rounded-full overflow-hidden mb-4 bg-black/30">
+      <div className="flex h-3 rounded-full overflow-hidden mb-4 bg-gray-200 dark:bg-black/30">
         {assets.map((a, i) => {
           const usdValue = parseFloat(a.balance) * parseFloat(a.tokenPrice || "0");
           const alloc = totalUsd > 0 ? (usdValue / totalUsd) * 100 : 0;
@@ -115,12 +136,12 @@ function PortfolioCard({ data }: { data: any }) {
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${colors[i % colors.length]}`} />
                 <div>
-                  <span className="text-sm font-semibold text-white">{a.symbol || "Unknown"}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{a.symbol || "Unknown"}</span>
                   <span className="text-xs text-gray-500 ml-2">{alloc}%</span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-semibold text-white">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
                   ${usdValue.toFixed(2)}
                 </div>
                 <div className="text-xs text-gray-600">
@@ -166,14 +187,14 @@ function SecurityCard({ result }: { result: any }) {
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2 mt-4 bg-black/20 p-3 rounded-lg border border-white/5">
+      <div className="flex flex-col gap-2 mt-4 bg-gray-100 dark:bg-black/20 p-3 rounded-lg border border-gray-200 dark:border-white/5">
         <div className="flex justify-between items-center text-xs">
           <span className="text-gray-500">Buy Tax:</span>
-          <span className="text-white font-mono">{tokenData.buyTaxes || "0"}%</span>
+          <span className="text-gray-900 dark:text-white font-mono">{tokenData.buyTaxes || "0"}%</span>
         </div>
         <div className="flex justify-between items-center text-xs">
           <span className="text-gray-500">Sell Tax:</span>
-          <span className="text-white font-mono">{tokenData.sellTaxes || "0"}%</span>
+          <span className="text-gray-900 dark:text-white font-mono">{tokenData.sellTaxes || "0"}%</span>
         </div>
         <div className="flex justify-between items-center text-xs">
           <span className="text-gray-500">Honeypot Risk:</span>
@@ -197,7 +218,7 @@ function SwapCard({ result }: { result: any }) {
   const toAmountUI = (parseFloat(quote.toTokenAmount || "0") / Math.pow(10, toDecimals)).toFixed(4);
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16162a] rounded-xl p-5 border border-emerald-500/20 mt-2">
+    <div className="bg-gradient-to-br from-white to-[#f4f4f5] dark:from-[#1a1a2e] dark:to-[#16162a] rounded-xl p-5 border border-emerald-500/20 mt-2">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">
           ✅
@@ -207,10 +228,10 @@ function SwapCard({ result }: { result: any }) {
           <div className="text-xs text-gray-500">Aggregated via OKX DEX Quote</div>
         </div>
       </div>
-      <div className="flex items-center justify-between bg-black/20 rounded-lg p-3 mb-3">
+      <div className="flex items-center justify-between bg-gray-100 dark:bg-black/20 rounded-lg p-3 mb-3">
         <div className="text-center">
           <div className="text-xs text-gray-500 mb-1">Sell</div>
-          <div className="text-lg font-bold text-white max-w-[80px] truncate">{fromAmountUI}</div>
+          <div className="text-lg font-bold text-gray-900 dark:text-white max-w-[80px] truncate">{fromAmountUI}</div>
           <div className="text-xs font-bold text-emerald-500">{quote.fromToken?.tokenSymbol || "FROM"}</div>
         </div>
         <div className="text-gray-600 text-lg">→</div>
@@ -234,10 +255,10 @@ function SwapCard({ result }: { result: any }) {
 
 function AgentSidebar({ activeAgent, contractStats, walletBalance }: { activeAgent: string | null; contractStats: ContractStats | null, walletBalance?: string | null }) {
   return (
-    <div className="w-64 border-r border-white/5 bg-[#0c0c16] p-4 flex flex-col gap-3 shrink-0 hidden lg:flex">
+    <div className="w-64 border-r border-gray-200 dark:border-white/5 bg-[#f4f4f5] dark:bg-[#0c0c16] p-4 flex flex-col gap-3 shrink-0 hidden lg:flex">
 
       {/* Live Contract Stats */}
-      <div className="mt-4 pt-4 border-t border-white/5">
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/5">
         <div className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-semibold mb-2 px-1">
           On-Chain Contract
         </div>
@@ -252,13 +273,13 @@ function AgentSidebar({ activeAgent, contractStats, walletBalance }: { activeAge
                 {contractStats.address.slice(0, 8)}...{contractStats.address.slice(-6)}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-black/20 rounded-lg p-2">
+                <div className="bg-gray-100 dark:bg-black/20 rounded-lg p-2">
                   <div className="text-[9px] text-gray-500">Wallet Balance</div>
-                  <div className="text-xs font-bold text-white">{walletBalance || "0.0000"} OKB</div>
+                  <div className="text-xs font-bold text-gray-900 dark:text-white">{walletBalance || "0.0000"} OKB</div>
                 </div>
-                <div className="bg-black/20 rounded-lg p-2">
+                <div className="bg-gray-100 dark:bg-black/20 rounded-lg p-2">
                   <div className="text-[9px] text-gray-500">Internal Hires</div>
-                  <div className="text-xs font-bold text-white">{contractStats.totalHires}</div>
+                  <div className="text-xs font-bold text-gray-900 dark:text-white">{contractStats.totalHires}</div>
                 </div>
               </div>
             </>
@@ -275,7 +296,7 @@ function AgentSidebar({ activeAgent, contractStats, walletBalance }: { activeAge
         <div className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-semibold mb-2 px-1">
           X-Agent Market
         </div>
-        <div className="rounded-xl p-3 border border-white/5 bg-white/[0.02]">
+        <div className="rounded-xl p-3 border border-gray-200 dark:border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <span className="text-sm">🏪</span>
             <div>
@@ -355,7 +376,7 @@ function ChatBubble({
            {message.data?.action === "mint_agent" ? (
              <>
                <button
-                 className="flex-1 bg-emerald-500/20 text-emerald-400 font-bold text-sm py-2.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-all cursor-pointer"
+                 className="flex-1 bg-emerald-500/20 text-emerald-400 font-bold text-sm py-2.5 rounded-lg border border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-500/30 transition-all cursor-pointer"
                  onClick={() => onSend?.("_sys_internal_confirm_true")}
                >
                  ✅ Proceed (0.001 OKB)
@@ -370,7 +391,7 @@ function ChatBubble({
            ) : (
              <>
                <button
-                 className="flex-1 bg-emerald-500/20 text-emerald-400 font-bold text-sm py-2.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-all cursor-pointer"
+                 className="flex-1 bg-emerald-500/20 text-emerald-400 font-bold text-sm py-2.5 rounded-lg border border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-500/30 transition-all cursor-pointer"
                   onClick={() => onSend?.("_sys_internal_confirm_true")}
                >
                  ✅ Confirm & Execute
@@ -390,9 +411,9 @@ function ChatBubble({
 
   // Style map for different message types
   const styles: Record<string, string> = {
-    user: "bg-emerald-600/20 border-emerald-500/20 text-white self-end",
-    system: "bg-white/[0.03] border-white/5 text-gray-400",
-    "agent-activity": "bg-white/[0.03] border-white/5 text-gray-300",
+    user: "bg-emerald-600/20 border-emerald-500/20 text-gray-900 dark:text-white self-end",
+    system: "bg-white/[0.03] border-gray-200 dark:border-white/5 text-gray-400",
+    "agent-activity": "bg-white/[0.03] border-gray-200 dark:border-white/5 text-gray-300",
     success: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
     error: "bg-red-500/10 border-red-500/20 text-red-400",
     x402: "bg-pink-500/5 border-pink-500/20 text-pink-300",
@@ -455,14 +476,14 @@ function formatBold(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <span key={i} className="font-bold text-white">
+        <span key={i} className="font-bold text-gray-900 dark:text-white">
           {part.slice(2, -2)}
         </span>
       );
     }
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        <code key={i} className="text-xs bg-white/5 px-1.5 py-0.5 rounded font-mono text-pink-300">
+        <code key={i} className="text-xs bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded font-mono text-pink-300">
           {part.slice(1, -1)}
         </code>
       );
@@ -594,24 +615,24 @@ export default function SovereignTerminal() {
   };
 
   return (
-    <div className="flex h-screen bg-[#06060a] text-gray-100 relative overflow-hidden">
+    <div className="flex h-screen bg-[#fafafa] dark:bg-[#06060a] text-gray-900 dark:text-gray-100 relative overflow-hidden transition-colors duration-500">
       {/* Animated Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#06060a]/80 via-transparent to-[#06060a]/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50 transition-colors duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#fafafa]/80 via-transparent to-[#fafafa]/80 dark:from-[#06060a]/80 dark:to-[#06060a]/80 pointer-events-none transition-colors duration-500" />
       
       {/* Sidebar */}
-      <div className="z-10 bg-[#0c0c16]/80 backdrop-blur-xl border-r border-white/5">
+      <div className="z-10 bg-[#f4f4f5] dark:bg-[#0c0c16]/80 backdrop-blur-xl border-r border-gray-200 dark:border-white/5">
         <AgentSidebar activeAgent={activeAgent} contractStats={contractStats} walletBalance={balance} />
       </div>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 z-10">
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0c0c16]/50 backdrop-blur-2xl shrink-0">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/5 bg-[#f4f4f5] dark:bg-[#0c0c16]/50 backdrop-blur-2xl shrink-0">
           <div className="flex items-center gap-4">
             <SovereignLogo className="w-8 h-8" />
             <div className="flex flex-col">
-              <h1 className="text-lg font-black tracking-widest text-white leading-none">
+              <h1 className="text-lg font-black tracking-widest text-gray-900 dark:text-white leading-none">
                 SOVEREIGN
               </h1>
               <span className="text-[10px] text-emerald-400 font-bold tracking-[0.3em] uppercase mt-1">
@@ -620,7 +641,8 @@ export default function SovereignTerminal() {
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/5">
+            <ThemeToggle />
+            <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               X Layer
             </span>
@@ -650,14 +672,14 @@ export default function SovereignTerminal() {
             ) : (
               <button
                 onClick={connectWallet}
-                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 text-emerald-400 font-semibold hover:from-emerald-500/30 hover:to-emerald-600/30 transition-all cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] hover:shadow-[0_0_20px_rgba(52,211,153,0.25)]"
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-300 dark:border-emerald-500/30 text-emerald-400 font-semibold hover:from-emerald-500/30 hover:to-emerald-600/30 transition-all cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] hover:shadow-[0_0_20px_rgba(52,211,153,0.25)]"
               >
                 Connect Wallet
               </button>
             )}
             <button
               onClick={() => { setMessages([]); clearMemory(); }}
-              className="px-2.5 py-1 rounded-lg border border-white/5 hover:border-white/15 hover:bg-white/5 transition-all cursor-pointer text-gray-500 hover:text-gray-300"
+              className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/5 hover:border-white/15 hover:bg-black/5 dark:bg-white/5 transition-all cursor-pointer text-gray-500 hover:text-gray-300"
             >
               Clear
             </button>
@@ -674,7 +696,7 @@ export default function SovereignTerminal() {
             >
               <SovereignLogo className="w-24 h-24 mb-6" />
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-2xl font-black text-white tracking-widest">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-widest">
                   SOVEREIGN
                 </h2>
                 <div className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
@@ -702,7 +724,7 @@ export default function SovereignTerminal() {
                       setInput(cmd);
                       inputRef.current?.focus();
                     }}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-white/5 hover:border-emerald-500/30 bg-white/[0.02] hover:bg-emerald-500/5 text-gray-400 hover:text-emerald-400 transition-all text-left cursor-pointer group"
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-gray-200 dark:border-white/5 hover:border-emerald-300 dark:border-emerald-500/30 bg-white/[0.02] hover:bg-emerald-500/5 text-gray-400 hover:text-emerald-400 transition-all text-left cursor-pointer group"
                   >
                     <span className="text-lg group-hover:scale-110 transition-transform">{icon}</span>
                     <span className="text-xs leading-snug">{cmd}</span>
@@ -739,9 +761,9 @@ export default function SovereignTerminal() {
         {/* Input Bar */}
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-3 px-6 py-4 border-t border-white/5 bg-[#0c0c16]/80 backdrop-blur-xl shrink-0"
+          className="flex items-center gap-3 px-6 py-4 border-t border-gray-200 dark:border-white/5 bg-[#f4f4f5] dark:bg-[#0c0c16]/80 backdrop-blur-xl shrink-0"
         >
-          <div className="flex-1 flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3 focus-within:border-emerald-500/30 transition-all">
+          <div className="flex-1 flex items-center gap-3 bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 focus-within:border-emerald-300 dark:border-emerald-500/30 transition-all">
             <span className="text-emerald-400/60 text-sm">⚡</span>
             <input
               ref={inputRef}
@@ -756,7 +778,7 @@ export default function SovereignTerminal() {
           <button
             type="submit"
             disabled={isRunning || !input.trim()}
-            className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-20 disabled:hover:bg-emerald-600 text-white text-xs font-semibold tracking-wider transition-all cursor-pointer shrink-0"
+            className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-20 disabled:hover:bg-emerald-600 text-gray-900 dark:text-white text-xs font-semibold tracking-wider transition-all cursor-pointer shrink-0"
           >
             Execute
           </button>

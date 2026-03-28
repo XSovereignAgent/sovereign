@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 /* Custom scrollbar for the terminal */
 ::-webkit-scrollbar {
@@ -10,11 +11,17 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(150, 150, 150, 0.4);
   border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.6);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -29,13 +36,18 @@
 }
 
 body {
-  background: #0a0a0f;
-  color: #f3f4f6;
   font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.dark body {
+  background-color: #0a0a0f;
+  color: #f3f4f6;
 }
 
 /* Selection color */
 ::selection {
   background: rgba(16, 185, 129, 0.3);
-  color: white;
+  color: inherit;
 }

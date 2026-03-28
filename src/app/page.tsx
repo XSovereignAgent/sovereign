@@ -10,7 +10,7 @@ export default function Home() {
   const [isLaunched, setIsLaunched] = useState(false);
 
   return (
-    <div className="bg-[#05050A] text-white overflow-hidden min-h-screen relative font-sans">
+    <div className="bg-gray-50 dark:bg-[#05050A] text-gray-900 dark:text-white overflow-hidden min-h-screen relative font-sans">
       <AnimatePresence mode="wait">
         {!isLaunched ? (
           <motion.div 
@@ -19,7 +19,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="absolute inset-0 flex flex-col items-center justify-center p-6 z-50 bg-[#05050A]"
+            className="absolute inset-0 flex flex-col items-center justify-center p-6 z-50 bg-gray-50 dark:bg-[#05050A]"
           >
             {/* Background Effects */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -53,15 +53,15 @@ export default function Home() {
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-6 mb-16">
-                <div className="flex items-center gap-2 text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-200/50 dark:bg-white/5 px-4 py-2 rounded-full border border-gray-300 dark:border-white/5">
                   <Activity className="w-4 h-4 text-cyan-400" />
                   Live Trending Data
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-200/50 dark:bg-white/5 px-4 py-2 rounded-full border border-gray-300 dark:border-white/5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   On-Chain Secruity
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-200/50 dark:bg-white/5 px-4 py-2 rounded-full border border-gray-300 dark:border-white/5">
                   <Zap className="w-4 h-4 text-amber-400" />
                   X402 Agent Payments
                 </div>
