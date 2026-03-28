@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
 
         result = {
           tx: {
-            to: txData.dexContractAddress,
+            to: params.token,
             data: txData.data,
             value: "0"
           }
