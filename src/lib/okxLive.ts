@@ -141,11 +141,11 @@ export async function getSwapQuoteReal(
   const chainId = CHAIN_IDS[chain] || "196";
 
   const result = await okxGet("/api/v6/dex/aggregator/quote", {
-    chainId,
+    chainIndex: chainId,
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
     amount,
-    slippage: "0.01",
+    slippage: "0.005",
   });
 
   // Normalize to match existing orchestrator expectations
@@ -173,11 +173,11 @@ export async function getSwapDataReal(
   console.log(`[OKX Swap] Requesting swap data: ${fromToken} → ${toToken}, amount=${amount}, wallet=${walletAddress}, chain=${chainId}`);
 
   const result = await okxGet("/api/v6/dex/aggregator/swap", {
-    chainId,
+    chainIndex: chainId,
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
     amount,
-    slippage: "0.01",
+    slippage: "0.005",
     userWalletAddress: walletAddress,
   });
 
