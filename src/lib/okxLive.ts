@@ -140,7 +140,7 @@ export async function getSwapQuoteReal(
 ) {
   const chainId = CHAIN_IDS[chain] || "196";
 
-  const result = await okxGet("/api/v5/dex/aggregator/quote", {
+  const result = await okxGet("/api/v6/dex/aggregator/quote", {
     chainId,
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
@@ -172,7 +172,7 @@ export async function getSwapDataReal(
 
   console.log(`[OKX Swap] Requesting swap data: ${fromToken} → ${toToken}, amount=${amount}, wallet=${walletAddress}, chain=${chainId}`);
 
-  const result = await okxGet("/api/v5/dex/aggregator/swap", {
+  const result = await okxGet("/api/v6/dex/aggregator/swap", {
     chainId,
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
