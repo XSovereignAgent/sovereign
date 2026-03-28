@@ -842,19 +842,29 @@ async function executeExternalTask(
       const targetToken = ctx?.safeTokens?.length ? ctx.safeTokens[0].address : "0x74b7f16337b8972027f6196a17a631ac6de26d22";
       const targetName = ctx?.safeTokens?.length ? ctx.safeTokens[0].name : "USDC";
 
-      let amountWei = "1000000000000000"; // fallback to 0.001 OKB
+      const action = task.data?.action || "buy";
+      const isSell = action === "sell";
+      const OKB_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+      
+      const fromTokenAddr = isSell ? targetToken : OKB_ADDRESS;
+      const toTokenAddr = isSell ? OKB_ADDRESS : targetToken;
+      
+      const fromDecimals = isSell && targetName.toUpperCase() === "USDC" ? 6 : 18;
+
+      let amountWei = isSell && targetName.toUpperCase() === "USDC" ? "1000000" : "1000000000000000"; // fallback to 1 USDC or 0.001 OKB
       if (task.data?.amountStr) {
          try {
            const { ethers } = await import("ethers");
-           amountWei = ethers.parseEther(task.data.amountStr).toString();
+           amountWei = ethers.parseUnits(task.data.amountStr, fromDecimals).toString();
          } catch {
-           amountWei = "1000000000000000";
+           amountWei = isSell && targetName.toUpperCase() === "USDC" ? "1000000" : "1000000000000000";
          }
       }
       
-      onMessage(msg("agent-activity", `${selected.name} preparing to buy **${targetName}**...`, { agentName: selected.name, agentRole: role }));
+      const actionDisplay = isSell ? "sell" : "buy";
+      onMessage(msg("agent-activity", `${selected.name} preparing to ${actionDisplay} **${targetName}**...`, { agentName: selected.name, agentRole: role }));
 
-      const quoteRes = await callAgentAPI("swap_quote", { from: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", to: targetToken, amount: amountWei, chain: "xlayer" });
+      const quoteRes = await callAgentAPI("swap_quote", { from: fromTokenAddr, to: toTokenAddr, amount: amountWei, chain: "xlayer" });
       if (quoteRes.success && quoteRes.data?.data) {
         onMessage(msg("data-card", "swap", { agentName: selected.name, data: quoteRes.data.data }));
         onMessage(msg("confirmation", "Action Required: Do you want to proceed and execute this swap?", { agentName: selected.name, data: quoteRes.data.data }));
@@ -868,14 +878,17 @@ async function executeExternalTask(
             // Execute the actual swap
             // Execute the actual swap via MetaMask
             const executeRes = await callAgentAPI("get_swap_data", { 
-              from: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", 
-              to: targetToken, 
+              from: fromTokenAddr, 
+              to: toTokenAddr, 
               amount: amountWei, 
               userAddress: walletAddress,
               chain: "xlayer" 
             });
             
             if (executeRes.success && executeRes.data?.tx) {
+              if (isSell) {
+                onMessage(msg("system", `⚠️ **Allowance Required:** Selling an ERC-20 token requires approval. If the transaction fails, please ensure you have granted token spending approval to the DEX router in your OKX Wallet first.`, { agentName: selected.name }));
+              }
               onMessage(msg("system", "Please sign the swap transaction in your wallet...", { agentName: selected.name }));
               try {
                 if (typeof window === "undefined" || !(window as any).ethereum) {
@@ -896,7 +909,8 @@ async function executeExternalTask(
                 const receipt = await tx.wait();
                 
                 if (receipt?.status === 1) {
-                  onMessage(msg("success", `Swap completed successfully! **${targetName}** has been added to your wallet.`, { agentName: selected.name }));
+                  const outToken = isSell ? "OKB" : targetName;
+                  onMessage(msg("success", `Swap completed successfully! **${outToken}** has been added to your wallet.`, { agentName: selected.name }));
                   onMessage(msg("system", `View Swap Transaction on X Layer Explorer:\nhttps://www.okx.com/explorer/xlayer/tx/${tx.hash}`, { agentName: selected.name }));
                 } else {
                   onMessage(msg("error", "Swap execution failed on-chain. Please check your OKB balance for gas."));

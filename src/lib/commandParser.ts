@@ -99,8 +99,13 @@ export function parseCommand(input: string): ParsedIntent {
       let taskData = undefined;
       if (intent === "execute_trade") {
         const match = input.match(/([\d.]+)\s*(OKB|USDC|ETH|USDT)/i);
+        const actionMatch = input.match(/\b(buy|sell)\b/i);
         if (match) {
-          taskData = { amountStr: match[1], token: match[2].toUpperCase() };
+          taskData = { 
+            amountStr: match[1], 
+            token: match[2].toUpperCase(),
+            action: actionMatch ? actionMatch[1].toLowerCase() : "buy"
+          };
         }
       } else if (intent === "burn_agent" || intent === "mint_agent") {
         const roleMatch = input.match(/\b(brain|security|research|execution|economy|action|signal|portfolio|rebalancer)\b/i);
