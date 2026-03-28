@@ -145,7 +145,7 @@ export async function getSwapQuoteReal(
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
     amount,
-    slippage: "0.005",
+    slippagePercent: "0.5",
   });
 
   // Normalize to match existing orchestrator expectations
@@ -177,7 +177,7 @@ export async function getSwapDataReal(
     fromTokenAddress: fromToken,
     toTokenAddress: toToken,
     amount,
-    slippage: "0.005",
+    slippagePercent: "0.5",
     userWalletAddress: walletAddress,
   });
 
